@@ -1,0 +1,13 @@
+fuse-autohttpfs - auto and passing mount to http servers with fuse.
+
+Copyrigyt 2010 Toshiyuki Terashita.
+
+===
+mountpoint以降のパス名をURLとみなしてHTTPリクエストします。
+
+例:
+  $ autohttpfs /mnt/httpfs/
+  $ cat /mnt/httpfs/localhost/index.html
+  =>  localhost に httpd を起動しておけば、
+      curl localhost/index.html と同じ動作になります。
+  $ fusermount -u /mnt/httpfs/
