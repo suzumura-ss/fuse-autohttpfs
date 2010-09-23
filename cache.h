@@ -20,19 +20,29 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <string>
 #include <vector>
 #include <map>
+#include "log.h"
+
+#ifndef CACHE_EXPIRES_SEC
+# define CACHE_EXPIRES_SEC (180) // sec
+#endif
 
 
 class UrlStat
 {
 public:
-  inline UrlStat() { mode = 0; length = 0; };
-  inline UrlStat(mode_t m, uint64_t l=0 ) { mode = m; length = l; };
+  inline UrlStat(mode_t m = S_IFDIR, uint64_t l = 0) {
+    mode = m;
+    length = l;
+    expire = time(NULL) + CACHE_EXPIRES_SEC;
+  };
   inline virtual ~UrlStat() {};
+  inline bool is_valid() const { return (expire>=time(NULL))? true: false; };
   inline bool is_dir() const { return !!(mode & S_IFDIR); }
   inline bool is_reg() const { return !!(mode & S_IFREG); }
   inline void operator=(const UrlStat& s) { length = s.length; mode = s.mode; };
@@ -40,6 +50,7 @@ public:
 public:
   mode_t    mode;
   uint64_t  length;
+  time_t    expire;
 };
 
 
@@ -60,8 +71,9 @@ class UrlStatMap: public UrlStatBASE
 {
 public:
   bool insert(const char* path, const UrlStat& us);
+  UrlStatMap::iterator find_with_expire(const char* path);
   void trim(size_t count);
-  void dump();
+  void dump(Log& logger);
 };
 
 
@@ -82,7 +94,7 @@ public:
   bool find(const char* path, UrlStat& stat);
   inline uint64_t size() const { return m_stats.size(); }
   void trim();
-  void dump();
+  void dump(Log& logger);
 
 private:
   pthread_mutex_t m_lock;

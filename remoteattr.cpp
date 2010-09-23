@@ -20,7 +20,7 @@
 #include "curlaccessor.h"
 
 
-// RemoteAttr class imprements.
+// RemoteAttr class implements.
 int RemoteAttr::get_attr(const char* path, UrlStat& stat)
 {
   // check 'root' directory.

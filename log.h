@@ -50,3 +50,4 @@ private:
 
 
 #endif // __INCLUDE_LOG_H__
+// vim: sw=2 sts=2 ts=4 expandtab :

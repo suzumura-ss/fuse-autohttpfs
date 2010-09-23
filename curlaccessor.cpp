@@ -21,7 +21,7 @@
 #include "int64format.h"
 
 
-// CurlSlist class imprements.
+// CurlSlist class implements.
 CurlSlist::~CurlSlist()
 {
   while(curl_slist* p=m_head) {
@@ -44,7 +44,7 @@ void CurlSlist::add(const char* string)
 
 
 
-// CurlAccessor class imprements.
+// CurlAccessor class implements.
 CurlAccessor::CurlAccessor(const char* path, bool dir_access)
 {
   m_url = (path[0]!='/')? path: path+1;

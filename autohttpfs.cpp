@@ -26,7 +26,7 @@
 
 
 
-// AutoHttpFs class imprements
+// AutoHttpFs class implements.
 void AutoHttpFs::parse_args(int& argc, char* argv[])
 {
   m_root = "/";
@@ -208,3 +208,5 @@ void AutoHttpFs::init_fuse_operations(fuse_operations& oper)
   oper.init       = init;
   oper.destroy    = destroy;
 }
+
+// vim: sw=2 sts=2 ts=4 expandtab :

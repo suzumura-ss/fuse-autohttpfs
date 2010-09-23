@@ -28,3 +28,4 @@ extern Log glog;
 
 
 #endif // __INCLUDE_GLOBALS_H__
+// vim: sw=2 sts=2 ts=4 expandtab :

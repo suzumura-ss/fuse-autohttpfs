@@ -21,11 +21,15 @@
 #include "globals.h"
 #include "int64format.h"
 
+#ifndef CACHE_MAX_ENTRIES
+# define CACHE_MAX_ENTRIES (2000)
+#endif
 
-// UrlStatMap class implement.
+
+// UrlStatMap class implements.
 bool UrlStatMap::insert(const char* path, const UrlStat& us)
 {
-	Url key(path);
+  Url key(path);
   std::pair<UrlStatBASE::iterator, bool> r = UrlStatBASE::insert(std::make_pair(key, us));
   if(!r.second) {
     // already inserted. => update stat.
@@ -35,29 +39,39 @@ bool UrlStatMap::insert(const char* path, const UrlStat& us)
 }
 
 
+UrlStatMap::iterator UrlStatMap::find_with_expire(const char* path)
+{
+  iterator it = find(path);
+  if(it==end()) return it;
+  if((*it).second.is_valid()) return it;
+  erase(it);
+  return end();
+}
+
+
 void UrlStatMap::trim(size_t count)
 {
   for(; count>0; count--) {
-    UrlStatBASE::iterator it = begin();
-    UrlStatBASE::erase(it);
+    iterator it = begin();
+    erase(it);
   }
 }
 
 
-void UrlStatMap::dump()
+void UrlStatMap::dump(Log& logger)
 {
-  glog(Log::NOTE, "[UrlStatMap]\n");
+  logger(Log::NOTE, "[UrlStatMap]\n");
   UrlStatMap::iterator it = begin();
   for(; it!=end(); it++) {
-    glog(Log::NOTE, "  %8o/%10"FINT64"u - (%p) %s\n",
+    logger(Log::NOTE, "  %8o/%10"FINT64"u - (%p) %s\n",
           (*it).second.mode, (*it).second.length, (*it).first.c_str(), (*it).first.c_str());
   }
-  glog(Log::NOTE, "=== Total: %"FSIZET"u items.\n", size());
+  logger(Log::NOTE, "=== Total: %"FSIZET"u items.\n", size());
 }
 
 
 
-// UrlStatCache class implement.
+// UrlStatCache class implements.
 void UrlStatCache::init()
 {
   pthread_mutexattr_t attr;
@@ -107,7 +121,7 @@ bool UrlStatCache::find(const char* path, UrlStat& stat)
 
   pthread_mutex_lock(&m_lock);
   {
-    UrlStatMap::iterator it = m_stats.find(path);
+    UrlStatMap::iterator it = m_stats.find_with_expire(path);
     if(it!=m_stats.end()) {
       stat = (*it).second;
       result = true;
@@ -123,11 +137,14 @@ bool UrlStatCache::find(const char* path, UrlStat& stat)
 
 void UrlStatCache::trim()
 {
-  static const size_t MAX_ITEMS = 1000;
+  // [ToDo] 今はpathが長いものを優先的に削除している。
+  // ディレクトリの途中パスもアクセス＆格納されるが、
+  // これらは再利用されやすいであろうという推測。
+  // これらを削除する前に UrlStat.expire が無効なものを削除すべき。
 
-  while(m_stats.size()>MAX_ITEMS) {
-    size_t sub = m_stats.size() - MAX_ITEMS;
-	  size_t delta = (sub<50)? 5: ((sub<200)? sub/10: 20);
+  while(m_stats.size()>CACHE_MAX_ENTRIES) {
+    size_t sub = m_stats.size() - CACHE_MAX_ENTRIES;
+    size_t delta = (sub<50)? 5: ((sub<200)? sub/10: 20);
     for(size_t b=0; b<sub; b+=delta) {
       pthread_mutex_lock(&m_lock);
       {
@@ -140,13 +157,13 @@ void UrlStatCache::trim()
 }
 
 
-void UrlStatCache::dump()
+void UrlStatCache::dump(Log& logger)
 {
-  glog(Log::INFO, "==== UrlStatCache dump ====\n");
+  logger(Log::INFO, "==== UrlStatCache dump ====\n");
 
   pthread_mutex_lock(&m_lock);
   {
-    m_stats.dump();
+    m_stats.dump(logger);
   }
   pthread_mutex_unlock(&m_lock);
 }

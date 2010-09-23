@@ -22,7 +22,7 @@
 #include "int64format.h"
 
 
-// AutoHttpFsContext class implement.
+// AutoHttpFsContext class implements.
 AutoHttpFsContext::AutoHttpFsContext(uint64_t seq, RemoteAttr& attr)
 {
   m_seq = seq;
@@ -36,7 +36,7 @@ AutoHttpFsContext::~AutoHttpFsContext()
 
 
 
-// AutoHttpFsContexts class implement.
+// AutoHttpFsContexts class implements.
 AutoHttpFsContexts::AutoHttpFsContexts()
 {
   pthread_mutexattr_t attr;

@@ -53,9 +53,7 @@ TEST(UrlStatCache, InsertAndFind)
   UrlStatCache usc;
   usc.init();
 
-  UrlStat us(2, 100);
-  usc.add("Hello", us);
-
+  usc.add("Hello", UrlStat(2, 100));
   {
     UrlStat us(0, 0);
     EXPECT_EQ(true, usc.find("Hello", us));
@@ -68,6 +66,22 @@ TEST(UrlStatCache, InsertAndFind)
     EXPECT_EQ(0, us.mode);
     EXPECT_EQ(0, us.length);
   }
+
+  usc.stop();
+}
+
+TEST(UrlStatCache, Expire)
+{
+  MTrace("UrlStatCache_Expire.mlog");
+
+  UrlStatCache usc;
+  usc.init();
+
+  usc.add("Hello", UrlStat(2, 100));
+  sleep(2);
+
+  UrlStat us(0, 0);
+  EXPECT_EQ(false, usc.find("Hello", us));
 
   usc.stop();
 }
@@ -95,7 +109,7 @@ TEST(UrlStatCache, Loop)
 {
   MTrace("UrlStatCache_Loop.mlog");
 
-  int threads = 200;
+  int threads = 50;
 
   UrlStatCache usc;
   usc.init();

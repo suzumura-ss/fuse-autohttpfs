@@ -18,7 +18,7 @@
 #include "log.h"
 
 
-// Log class imprements.
+// Log class implements.
 Log::Log(const char* ident, int facility, LOGLEVEL level)
 {
   m_level = level;
@@ -48,3 +48,5 @@ void Log::operator() (int level, const char* fmt, ...) const
   vlog(level, fmt, va);
   va_end(va);
 }
+
+// vim: sw=2 sts=2 ts=4 expandtab :
