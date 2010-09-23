@@ -137,10 +137,10 @@ bool UrlStatCache::find(const char* path, UrlStat& stat)
 
 void UrlStatCache::trim()
 {
-  // [ToDo] $B:#$O(Bpath$B$,D9$$$b$N$rM%@hE*$K:o=|$7$F$$$k!#(B
-  // $B%G%#%l%/%H%j$NESCf%Q%9$b%"%/%;%9!u3JG<$5$l$k$,!"(B
-  // $B$3$l$i$O:FMxMQ$5$l$d$9$$$G$"$m$&$H$$$&?dB,!#(B
-  // $B$3$l$i$r:o=|$9$kA0$K(B UrlStat.expire $B$,L58z$J$b$N$r:o=|$9$Y$-!#(B
+  // [ToDo] 今はpathが長いものを優先的に削除している。
+  // ディレクトリの途中パスもアクセス＆格納されるが、
+  // これらは再利用されやすいであろうという推測。
+  // これらを削除する前に UrlStat.expire が無効なものを削除すべき。
 
   while(m_stats.size()>CACHE_MAX_ENTRIES) {
     size_t sub = m_stats.size() - CACHE_MAX_ENTRIES;
