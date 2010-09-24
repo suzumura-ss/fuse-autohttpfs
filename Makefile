@@ -25,5 +25,8 @@ int64format.h:
     esac
 	@rm tmp.c a.out bits
 
+install:
+	install autohttpfs /usr/local/bin
+
 clean:
 	@-rm -f autohttpfs int64format.h

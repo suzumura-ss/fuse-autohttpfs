@@ -36,17 +36,23 @@ void Log::vlog(int level, const char* fmt, va_list va) const
 {
   if(level>m_level) return;
   vsyslog(level, fmt, va);
-  vfprintf(stdout, fmt, va);
-  fflush(stdout);
 }
 
 
 void Log::operator() (int level, const char* fmt, ...) const
 {
   va_list va;
+
   va_start(va, fmt);
   vlog(level, fmt, va);
   va_end(va);
+
+#ifdef OUTPUT_TO_STDOUT
+  va_start(va, fmt);
+  vfprintf(stdout, fmt, va);
+  fflush(stdout);
+  va_end(va);
+#endif
 }
 
 // vim: sw=2 sts=2 ts=4 expandtab :
