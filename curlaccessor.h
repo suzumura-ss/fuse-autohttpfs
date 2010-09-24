@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <curl/curl.h>
+#include "log.h"
 
 
 class CurlSlist
@@ -47,8 +48,8 @@ public:
   CurlAccessor(const char* url, bool dir_access = true);
   virtual ~CurlAccessor();
   void add_header(const char* key, const char* value);
-  int head();
-  int get(void* buf, uint64_t size, uint64_t offset);
+  int head(Log& logger);
+  int get(Log& logger, void* buf, uint64_t size, uint64_t offset);
   inline const char* url() { return m_url.c_str(); };
   inline uint64_t content_length() { return m_content_length; };
 
@@ -64,7 +65,7 @@ private:
   uint64_t m_buffer_size;
   uint64_t m_read_size;
   size_t copy(const void* ptr, uint64_t size);
-  void log_request_failed(const char* func);
+  void log_request_failed(Log& logger, const char* func);
 
 private:
   static size_t header_callback(const void* ptr, size_t size, size_t nmemb, void* _context);

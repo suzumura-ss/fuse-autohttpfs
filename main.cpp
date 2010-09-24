@@ -17,15 +17,7 @@
 
 #include "autohttpfs.h"
 #include "context.h"
-#include "log.h"
-#include "globals.h"
 #include <mcheck.h>
-
-
-// Globals.
-AutoHttpFs gConfig;
-Log glog("autohttpfs", LOG_LOCAL7, Log::DEVELOP);
-
 
 
 // main loop.
@@ -34,11 +26,14 @@ int main(int argc, char* argv[])
   static fuse_operations oper;
   AutoHttpFs::init_fuse_operations(oper);
 
-  gConfig.parse_args(argc, argv);
-  gConfig.setup();
-  glog.set_level(Log::NOTE);
+  AutoHttpFs fs;
+  const char* help = NULL;
+  fs.parse_args(help, argc, argv);
+  fs.setup();
 
-  return fuse_main(argc, argv, &oper, NULL);
+  int ret = fuse_main(argc, argv, &oper, (void*)&fs);
+  if(help) fprintf(stderr, "\n%s\n", help);
+  return ret;
 }
 
 // vim: sw=2 sts=2 ts=4 expandtab :

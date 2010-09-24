@@ -17,8 +17,6 @@
 
 #include <signal.h>
 #include "context.h"
-#include "log.h"
-#include "globals.h"
 #include "int64format.h"
 
 
@@ -37,14 +35,14 @@ AutoHttpFsContext::~AutoHttpFsContext()
 
 
 // AutoHttpFsContexts class implements.
-AutoHttpFsContexts::AutoHttpFsContexts()
+AutoHttpFsContexts::AutoHttpFsContexts(AutoHttpFs* fs)
 {
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); 
   pthread_mutex_init(&m_lock, &attr);
-  glog(Log::INFO, "AutoHttpFsContexts::m_lock=%p\n", &m_lock);
 
+  m_fs = fs;
   m_contexts.clear();
   sequence = 1;
 }
@@ -52,14 +50,6 @@ AutoHttpFsContexts::AutoHttpFsContexts()
 
 AutoHttpFsContexts::~AutoHttpFsContexts()
 {
-  pthread_mutex_lock(&m_lock);
-  try{
-    if(m_contexts.size()!=0) {
-      glog(Log::ERR, "*** m_contexts.counts()!=0 (%"FSIZET"u) ***\n", m_contexts.size());
-    }
-  }
-  catch(...) {}
-  pthread_mutex_unlock(&m_lock);
 }
 
 
@@ -100,7 +90,6 @@ AutoHttpFsContext* AutoHttpFsContexts::find(uint64_t seq)
   pthread_mutex_unlock(&m_lock);
   if(it!=m_contexts.end()) return (*it).second;
 
-  glog(Log::WARN, "[AutoHttpFsContext::%s(%"FINT64"d) is not found.\n", __FUNCTION__, seq);
   return NULL;
 }
 

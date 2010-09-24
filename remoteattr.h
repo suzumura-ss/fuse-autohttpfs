@@ -19,6 +19,7 @@
 #define __INCLUDE_REMOREATTR_H__
 
 #include "cache.h"
+#include "log.h"
 
 
 class RemoteAttr
@@ -31,7 +32,7 @@ public:
     try { m_cache.stop(); }
     catch(...){}
   };
-  int get_attr(const char* path, UrlStat& stat);
+  int get_attr(Log& logger, const char* path, UrlStat& stat);
 
 private:
   UrlStatCache  m_cache;

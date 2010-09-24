@@ -17,8 +17,6 @@
 
 #include <signal.h>
 #include "cache.h"
-#include "log.h"
-#include "globals.h"
 #include "int64format.h"
 
 #ifndef CACHE_MAX_ENTRIES
@@ -79,10 +77,9 @@ void UrlStatCache::init()
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); 
   pthread_mutex_init(&m_lock, &attr);
 
+  m_max_entries = CACHE_MAX_ENTRIES;
   m_stop_cleaner = false;
   pthread_create(&m_cleaner, NULL, cleaner, (void*)this);
-  
-  glog(Log::INFO, "UrlStatCache::m_lock=%p\n", &m_lock);
 }
 
 
@@ -98,20 +95,14 @@ void UrlStatCache::stop()
 
 void UrlStatCache::add(const char* path, mode_t mode, uint64_t length)
 {
-  const char* fmt = "";
+  time_t expire = time(NULL) + m_expire_sec;
 
   pthread_mutex_lock(&m_lock);
   {
-    UrlStat us(mode, length);
-    bool r = m_stats.insert(path, us);
-    if(r) {
-      fmt = "@@ Append cache: path=%s, %o, %"FINT64"u\n";
-    } else {
-      fmt = "@@ Update cache: path=%s, %o, %"FINT64"u\n";
-    }
+    UrlStat us(mode, length, expire);
+    m_stats.insert(path, us);
   }
   pthread_mutex_unlock(&m_lock);
-  glog(Log::DEBUG, fmt, path, mode, length);
 }
 
 
@@ -125,7 +116,6 @@ bool UrlStatCache::find(const char* path, UrlStat& stat)
     if(it!=m_stats.end()) {
       stat = (*it).second;
       result = true;
-      glog(Log::DEBUG, "@@ Cache found(%s==%s)=>%o/%"FINT64"u\n", (*it).first.c_str(), path, stat.mode, stat.length);;
     }
   }
   pthread_mutex_unlock(&m_lock);
@@ -142,8 +132,8 @@ void UrlStatCache::trim()
   // これらは再利用されやすいであろうという推測。
   // これらを削除する前に UrlStat.expire が無効なものを削除すべき。
 
-  while(m_stats.size()>CACHE_MAX_ENTRIES) {
-    size_t sub = m_stats.size() - CACHE_MAX_ENTRIES;
+  while(m_stats.size()>m_max_entries) {
+    size_t sub = m_stats.size() - m_max_entries;
     size_t delta = (sub<50)? 5: ((sub<200)? sub/10: 20);
     for(size_t b=0; b<sub; b+=delta) {
       pthread_mutex_lock(&m_lock);
@@ -153,7 +143,6 @@ void UrlStatCache::trim()
       pthread_mutex_unlock(&m_lock);
     }
   }
-  glog(Log::NOTE, "UrlStatCache::trim() => %"FSIZET"u\n", m_stats.size());
 }
 
 

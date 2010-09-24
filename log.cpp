@@ -47,12 +47,11 @@ void Log::operator() (int level, const char* fmt, ...) const
   vlog(level, fmt, va);
   va_end(va);
 
-#ifdef OUTPUT_TO_STDOUT
+  fprintf(stdout, "[%d] ", level);
   va_start(va, fmt);
   vfprintf(stdout, fmt, va);
   fflush(stdout);
   va_end(va);
-#endif
 }
 
 // vim: sw=2 sts=2 ts=4 expandtab :

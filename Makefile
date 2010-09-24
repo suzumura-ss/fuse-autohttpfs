@@ -6,7 +6,7 @@ CURLOPT=`pkg-config libcurl --cflags --libs`
 
 all: autohttpfs
 
-autohttpfs: main.cpp globals.h ${SRC} ${SRC:.cpp=.h} int64format.h Makefile
+autohttpfs: main.cpp ${SRC} ${SRC:.cpp=.h} int64format.h Makefile
 	g++ ${CFLAGS} ${DEBUG_OPT} -o autohttpfs main.cpp ${SRC} ${FUSEOPT} ${CURLOPT}
 
 int64format.h:

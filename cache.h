@@ -33,13 +33,14 @@
 #endif
 
 
+
 class UrlStat
 {
 public:
-  inline UrlStat(mode_t m = S_IFDIR, uint64_t l = 0) {
+  inline UrlStat(mode_t m = S_IFDIR, uint64_t l = 0, time_t e = 0) {
     mode = m;
     length = l;
-    expire = time(NULL) + CACHE_EXPIRES_SEC;
+    expire = e;
   };
   inline virtual ~UrlStat() {};
   inline bool is_valid() const { return (expire>=time(NULL))? true: false; };
@@ -80,7 +81,7 @@ public:
 class UrlStatCache
 {
 public:
-  inline UrlStatCache() {};
+  inline UrlStatCache() { m_expire_sec = CACHE_EXPIRES_SEC; };
   inline virtual ~UrlStatCache() {
     try { m_stats.clear(); }
     catch(...){}
@@ -92,6 +93,7 @@ public:
     add(path, stat.mode, stat.length);
   };
   bool find(const char* path, UrlStat& stat);
+  inline void set_expire(time_t sec) { m_expire_sec = sec; };
   inline uint64_t size() const { return m_stats.size(); }
   void trim();
   void dump(Log& logger);
@@ -99,6 +101,8 @@ public:
 private:
   pthread_mutex_t m_lock;
   UrlStatMap m_stats;
+  size_t  m_max_entries;
+  time_t  m_expire_sec;
   static void* cleaner(void*);
   static void alarm_handler(int);
   pthread_t m_cleaner;

@@ -26,13 +26,16 @@
 #include "remoteattr.h"
 
 
+class AutoHttpFs;
 class AutoHttpFsContext
 {
 public:
   AutoHttpFsContext(uint64_t seq, RemoteAttr& attr);
   virtual ~AutoHttpFsContext();
   inline uint64_t seq() const { return m_seq; };
-  inline int get_attr(const char* path, UrlStat& stat) { return m_attr->get_attr(path, stat); };
+  inline int get_attr(Log& logger, const char* path, UrlStat& stat) {
+    return m_attr->get_attr(logger, path, stat);
+  };
 
 private:
   uint64_t m_seq;
@@ -44,7 +47,7 @@ typedef std::map<uint64_t, AutoHttpFsContext*> AutoHttpFsContextMap;
 class AutoHttpFsContexts
 {
 public:
-  AutoHttpFsContexts();
+  AutoHttpFsContexts(AutoHttpFs* fs);
   virtual ~AutoHttpFsContexts();
   inline static AutoHttpFsContexts* ctxs() {
     fuse_context* fc = fuse_get_context();
@@ -53,9 +56,13 @@ public:
   AutoHttpFsContext* alloc_context();
   void	release_context(AutoHttpFsContext* ctx);
   AutoHttpFsContext* find(uint64_t seq);
-  inline int get_attr(const char* path, UrlStat& stat) { return m_attr.get_attr(path, stat); };
+  inline int get_attr(Log& logger, const char* path, UrlStat& stat) {
+    return m_attr.get_attr(logger, path, stat);
+  };
+  inline AutoHttpFs* fs() const { return m_fs; };
 
 private:
+  AutoHttpFs* m_fs;
   pthread_mutex_t m_lock;
   AutoHttpFsContextMap m_contexts;
   uint64_t	sequence;

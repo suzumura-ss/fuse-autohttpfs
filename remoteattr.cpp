@@ -21,7 +21,7 @@
 
 
 // RemoteAttr class implements.
-int RemoteAttr::get_attr(const char* path, UrlStat& stat)
+int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
 {
   // check 'root' directory.
   if(strcmp(path, "/")==0) {
@@ -42,7 +42,7 @@ int RemoteAttr::get_attr(const char* path, UrlStat& stat)
   // challenge "path/" to directory.
   {
     CurlAccessor ca(path);
-    int res = ca.head();
+    int res = ca.head(logger);
     if((res==200) || (res==403)) {
       // path should be directory.
       stat = UrlStat(S_IFDIR);
@@ -54,7 +54,7 @@ int RemoteAttr::get_attr(const char* path, UrlStat& stat)
   // challenge "path" to regular file.
   {
     CurlAccessor ca(path, false);
-    int res = ca.head();
+    int res = ca.head(logger);
     if(res==200) {
       // path is regular file.
       stat = UrlStat(S_IFREG, ca.content_length());

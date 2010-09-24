@@ -21,22 +21,59 @@
 #include "remoteattr.h"
 #include "curlaccessor.h"
 #include "log.h"
-#include "globals.h"
 #include "int64format.h"
 
 
+// Globals.
+static Log glog("autohttpfs", LOG_LOCAL7, Log::NOTE);
+
 
 // AutoHttpFs class implements.
-void AutoHttpFs::parse_args(int& argc, char* argv[])
+void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
 {
   m_root = "/";
+  int ll = Log::NOTE;
 
   for(int it=1; it<argc; it++) {
-    if(strcmp(argv[it], "-r")==0 && it+1<argc) {
-      parsearg_helper(m_root, argc, argv, it);
+    parsearg_helper(m_root, "--root=", argc, argv+it, it);
+    parsearg_helper(ll, "--loglevel=", argc, argv+it, it);
+    if(strcmp("--help", argv[it])==0) {
+      help = "autohttpfs options:\n" \
+             "    --root=DIR      (default: / (root))\n" \
+             "    --loglevel=N    syslog level (default: 5 (NOTE))\n";
     }
   }
-  glog(Log::VERBOSE, "root dir: %s\n", m_root.c_str());
+  glog.set_level((Log::LOGLEVEL)ll);
+}
+
+
+void AutoHttpFs::parsearg_helper(std::string& opt, const char* key, int& argc, char** argv, int& it)
+{
+  size_t kl = strlen(key);
+  if(strncmp(*argv, key, kl)==0) {
+    opt = argv[0] + kl;
+    parsearg_shift(argc, argv, it);
+    glog(Log::DEBUG, "parse_args: '%s' => '%s'\n", key, opt.c_str());
+  }
+}
+
+
+void AutoHttpFs::parsearg_helper(int& opt, const char* key, int& argc, char** argv, int& it)
+{
+  size_t kl = strlen(key);
+  if(strncmp(*argv, key, kl)==0) {
+    opt = atoi(argv[0] + kl);
+    parsearg_shift(argc, argv, it);
+    glog(Log::DEBUG, "parse_args: '%s' => %d\n", key, opt);
+  }
+}
+
+
+void AutoHttpFs::parsearg_shift(int& argc, char** argv, int& it)
+{
+  memmove(argv, argv+1, sizeof(argv)*(argc-it));
+  argc--;
+  it--;
 }
 
 
@@ -44,7 +81,7 @@ void AutoHttpFs::setup()
 {
   m_errno = 0;
   memset(&m_root_stat, 0, sizeof(struct stat));
-  if(::stat(root(), &m_root_stat)) m_errno = errno;
+  if(::stat(m_root.c_str(), &m_root_stat)) m_errno = errno;
   m_root_stat.st_mode &= (~(S_IWUSR|S_IWGRP|S_IWOTH));
   m_root_stat.st_mode &= (~S_IFMT);
   m_reguler_stat = m_root_stat;
@@ -58,19 +95,20 @@ void AutoHttpFs::setup()
 int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
 {
   AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
-  glog(Log::DEBUG, ">> %s(%s) ctxs=%p\n", __FUNCTION__, path, ctxs);
+  AutoHttpFs* self = ctxs->fs();
+  glog(Log::DEBUG, ">> %s(%s) ctxs=%p, this=%p\n", __FUNCTION__, path, ctxs, self);
 
   memset(stbuf, 0, sizeof(struct stat));
-  if(gConfig.errcode()!=0) return gConfig.errcode();
+  if(self->errcode()!=0) return self->errcode();
 
   UrlStat us;
-  int r = ctxs->get_attr(path, us);
+  int r = ctxs->get_attr(glog, path, us);
   if(r!=0) return r;
 
   if(us.is_dir()) {
-    memcpy(stbuf, gConfig.stat_d(), sizeof(*stbuf));
+    memcpy(stbuf, self->stat_d(), sizeof(*stbuf));
   } else {
-    memcpy(stbuf, gConfig.stat_r(), sizeof(*stbuf));
+    memcpy(stbuf, self->stat_r(), sizeof(*stbuf));
     stbuf->st_size = us.length;
   }
   return 0;
@@ -81,11 +119,11 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
 int AutoHttpFs::opendir(const char* path, struct fuse_file_info *ffi)
 {
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
-  if(ctx) ffi->fh = ctx->seq();
+  ffi->fh = ctx->seq();
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
   UrlStat us;
-  int r = ctx->get_attr(path, us);
+  int r = ctx->get_attr(glog, path, us);
   if(r!=0) return r;
 
   if(us.is_dir()) return 0;
@@ -100,7 +138,7 @@ int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
-  if((ffi==NULL) || (ffi->fh==0)) return -EINVAL;
+  if(ffi->fh==0) return -EINVAL;
 
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
@@ -114,7 +152,7 @@ int AutoHttpFs::releasedir(const char* path, struct fuse_file_info *ffi)
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
-  if(ctx) AUTOHTTPFSCONTEXTS.release_context(ctx);
+  AUTOHTTPFSCONTEXTS.release_context(ctx);
   return 0;
 }
 
@@ -123,11 +161,11 @@ int AutoHttpFs::releasedir(const char* path, struct fuse_file_info *ffi)
 int AutoHttpFs::open(const char* path, struct fuse_file_info* ffi)
 {
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
-  if(ctx) ffi->fh = ctx->seq();
+  ffi->fh = ctx->seq();
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
   UrlStat us;
-  int r = ctx->get_attr(path, us);
+  int r = ctx->get_attr(glog, path, us);
   if(r!=0) return r;
 
   if(us.is_reg()) return 0;
@@ -143,8 +181,10 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p, size=%"FINT64"d, offset=%"FINT64"d\n", \
                         __FUNCTION__, path, ffi, ffi->fh, ctx, (off_t)size, offset);
 
+  if(ffi->fh==0) return -EINVAL;
+
   UrlStat us;
-  int r = ctx->get_attr(path, us);
+  int r = ctx->get_attr(glog, path, us);
   if(r!=0) return r;
   if(!us.is_reg()) return -EINVAL;
  
@@ -155,7 +195,7 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
   if(size<0) return 0;
 
   CurlAccessor ca(path, false);
-  r = ca.get(buf, offset, size);
+  r = ca.get(glog, buf, offset, size);
   if((r==200)||(r==206)) return size;
   return 0;
 }
@@ -167,7 +207,7 @@ int AutoHttpFs::release(const char* path, struct fuse_file_info* ffi)
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   glog(Log::INFO, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
-  if(ctx) AUTOHTTPFSCONTEXTS.release_context(ctx);
+  AUTOHTTPFSCONTEXTS.release_context(ctx);
   return 0;
 }
 
@@ -175,12 +215,15 @@ int AutoHttpFs::release(const char* path, struct fuse_file_info* ffi)
 // fuse::init
 void* AutoHttpFs::init(struct fuse_conn_info* fci)
 {
+  fuse_context* fc = fuse_get_context();
+  AutoHttpFs* self = (AutoHttpFs*)(fc->private_data);
+
   fci->async_read   = 1;
   fci->max_write    = 0;
   fci->max_readahead = 0x20000;
-  AutoHttpFsContexts* ctxs = new AutoHttpFsContexts();
 
-  glog(Log::VERBOSE, "[%s] fci=%p, ctxs=%p\n", __FUNCTION__, fci, ctxs);
+  AutoHttpFsContexts* ctxs = new AutoHttpFsContexts(self);
+  glog(Log::NOTE, "Starting autohttpfs.\n");
   return (void*)ctxs;
 }
 
@@ -189,7 +232,7 @@ void* AutoHttpFs::init(struct fuse_conn_info* fci)
 void AutoHttpFs::destroy(void* user_data)
 {
   AutoHttpFsContexts* ctxs = (AutoHttpFsContexts*)user_data;
-  glog(Log::VERBOSE, "[%s] ctxs=%p\n", __FUNCTION__, ctxs);
+  glog(Log::NOTE, "Stopping autohttpfs.\n");
   delete ctxs;
 }
 
@@ -199,7 +242,7 @@ void AutoHttpFs::init_fuse_operations(fuse_operations& oper)
 {
   memset(&oper, 0, sizeof(oper));
   oper.getattr    = getattr;
-  oper.opendir		= opendir;
+  oper.opendir    = opendir;
   oper.readdir    = readdir;
   oper.releasedir = releasedir;
   oper.open       = open;
