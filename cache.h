@@ -91,9 +91,9 @@ public:
   };
   void init();
   void stop();
-  void add(const char* path, mode_t mode, uint64_t length);
-  inline void add(const char* path, const UrlStat& stat) {
-    add(path, stat.mode, stat.length);
+  void add(const char* path, const UrlStat& stat);
+  inline void add(const char* path, mode_t mode, uint64_t length) {
+    add(path, UrlStat(mode, length));
   };
   bool find(const char* path, UrlStat& stat);
   inline void set_expire(time_t sec) { m_expire_sec = sec; };

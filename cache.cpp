@@ -96,14 +96,15 @@ void UrlStatCache::stop()
 }
 
 
-void UrlStatCache::add(const char* path, mode_t mode, uint64_t length)
+void UrlStatCache::add(const char* path, const UrlStat& stat)
 {
   time_t expire = time(NULL) + m_expire_sec;
   bool over_capacity = false;
 
   pthread_mutex_lock(&m_lock);
   {
-    UrlStat us(mode, length, expire);
+    UrlStat us = stat;
+    us.expire = expire;
     if(m_stats.insert(path, us) && (m_stats.size()>m_max_entries)) {
       over_capacity = true;
     }
