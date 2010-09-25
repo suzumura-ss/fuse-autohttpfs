@@ -12,16 +12,15 @@ TEST(UrlStatMap, Initialize)
   EXPECT_EQ(0, usm.size());
 }
 
+
 TEST(UrlStatMap, InsertAndFind)
 {
   MTrace mt("UrlStatMap_InsertAndFind.mlog");
 
   UrlStatMap usm;
-  {
-    UrlStat us(2, 100);
-    EXPECT_EQ(true, usm.insert("Hello", us));
-  }
+  EXPECT_EQ(true, usm.insert("Hello", UrlStat(2, 100)));
   EXPECT_EQ(1, usm.size());
+
   {
     UrlStatMap::iterator it = usm.find("Hello");
     EXPECT_TRUE(usm.end()!=it);
@@ -32,10 +31,40 @@ TEST(UrlStatMap, InsertAndFind)
     UrlStatMap::iterator it = usm.find("World");
     EXPECT_TRUE(usm.end()==it);
   }
+}
+
+
+TEST(UrlStatMap, Trim)
+{
+  MTrace mt("UrlStatMap_Trim.mlog");
+
+  UrlStatMap usm;
+  usm.insert("foo", UrlStat(1, 100));
+  usm.insert("bar", UrlStat(2, 200));
+  usm.insert("baz", UrlStat(3, 300));
+
+  EXPECT_EQ(3, usm.size());
+
+  usm.trim(1);
+  EXPECT_EQ(2, usm.size());
+  EXPECT_TRUE(usm.end()==usm.find("foo"));
+  EXPECT_TRUE(usm.end()!=usm.find("bar"));
+  EXPECT_TRUE(usm.end()!=usm.find("baz"));
+
+  usm.trim(1);
+  EXPECT_EQ(1, usm.size());
+  EXPECT_TRUE(usm.end()==usm.find("foo"));
+  EXPECT_TRUE(usm.end()==usm.find("bar"));
+  EXPECT_TRUE(usm.end()!=usm.find("baz"));
 
   usm.trim(1);
   EXPECT_EQ(0, usm.size());
+  EXPECT_TRUE(usm.end()==usm.find("foo"));
+  EXPECT_TRUE(usm.end()==usm.find("bar"));
+  EXPECT_TRUE(usm.end()==usm.find("baz"));
 }
+
+
 
 TEST(UrlStatCache, Initialize)
 {
@@ -45,6 +74,7 @@ TEST(UrlStatCache, Initialize)
   usc.init();
   usc.stop();
 }
+
 
 TEST(UrlStatCache, InsertAndFind)
 {
@@ -70,6 +100,7 @@ TEST(UrlStatCache, InsertAndFind)
   usc.stop();
 }
 
+
 TEST(UrlStatCache, Expire)
 {
   MTrace("UrlStatCache_Expire.mlog");
@@ -86,6 +117,7 @@ TEST(UrlStatCache, Expire)
   usc.stop();
 }
 
+
 void* cache_access_proc(void* ctx)
 {
   UrlStatCache* usc = (UrlStatCache*)ctx;
@@ -99,7 +131,7 @@ void* cache_access_proc(void* ctx)
       EXPECT_EQ(ai % 100, us.mode);
       EXPECT_EQ(ai, us.length);
     }
-    usleep(1);
+    usleep(50);
   }
 
   return NULL;
@@ -131,6 +163,7 @@ TEST(UrlStatCache, Loop)
   delete[] th;
   usc.stop();
 }
+
 
 
 int main(int argc, char* argv[])

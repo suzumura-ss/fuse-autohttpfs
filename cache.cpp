@@ -29,7 +29,10 @@ bool UrlStatMap::insert(const char* path, const UrlStat& us)
 {
   Url key(path);
   std::pair<UrlStatBASE::iterator, bool> r = UrlStatBASE::insert(std::make_pair(key, us));
-  if(!r.second) {
+  if(r.second) {
+    // inserted.
+    m_entries.push_back(r.first);
+  } else {
     // already inserted. => update stat.
     (*r.first).second = us;
   }
@@ -42,7 +45,6 @@ UrlStatMap::iterator UrlStatMap::find_with_expire(const char* path)
   iterator it = find(path);
   if(it==end()) return it;
   if((*it).second.is_valid()) return it;
-  erase(it);
   return end();
 }
 
@@ -50,8 +52,10 @@ UrlStatMap::iterator UrlStatMap::find_with_expire(const char* path)
 void UrlStatMap::trim(size_t count)
 {
   for(; count>0; count--) {
-    iterator it = begin();
-    erase(it);
+    if(m_entries.size()==0) break;
+    iterator it = m_entries.front();
+    UrlStatBASE::erase(it);
+    m_entries.pop_front();
   }
 }
 
@@ -74,11 +78,11 @@ void UrlStatCache::init()
 {
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE); 
   pthread_mutex_init(&m_lock, &attr);
 
   m_max_entries = CACHE_MAX_ENTRIES;
   m_stop_cleaner = false;
+  signal(SIGUSR2, alarm_handler);
   pthread_create(&m_cleaner, NULL, cleaner, (void*)this);
 }
 
@@ -87,7 +91,6 @@ void UrlStatCache::stop()
 {
   void* ret;
   m_stop_cleaner = true;
-  signal(SIGUSR2, alarm_handler);
   pthread_kill(m_cleaner, SIGUSR2);
   pthread_join(m_cleaner, &ret);
 }
@@ -96,13 +99,18 @@ void UrlStatCache::stop()
 void UrlStatCache::add(const char* path, mode_t mode, uint64_t length)
 {
   time_t expire = time(NULL) + m_expire_sec;
+  bool over_capacity = false;
 
   pthread_mutex_lock(&m_lock);
   {
     UrlStat us(mode, length, expire);
-    m_stats.insert(path, us);
+    if(m_stats.insert(path, us) && (m_stats.size()>m_max_entries)) {
+      over_capacity = true;
+    }
   }
   pthread_mutex_unlock(&m_lock);
+
+  if(over_capacity) pthread_kill(m_cleaner, SIGUSR2);
 }
 
 
@@ -127,11 +135,6 @@ bool UrlStatCache::find(const char* path, UrlStat& stat)
 
 void UrlStatCache::trim()
 {
-  // [ToDo] 今はpathが長いものを優先的に削除している。
-  // ディレクトリの途中パスもアクセス＆格納されるが、
-  // これらは再利用されやすいであろうという推測。
-  // これらを削除する前に UrlStat.expire が無効なものを削除すべき。
-
   while(m_stats.size()>m_max_entries) {
     size_t sub = m_stats.size() - m_max_entries;
     size_t delta = (sub<50)? 5: ((sub<200)? sub/10: 20);

@@ -22,7 +22,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <string>
-#include <vector>
 #include <curl/curl.h>
 #include "log.h"
 
