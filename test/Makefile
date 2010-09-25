@@ -1,5 +1,5 @@
 TESTS=cache_test
-CFLAGS=-g -O0 -Wall -lgtest `pkg-config fuse --cflags --libs`
+CFLAGS=-g -O3 -Wall -lgtest `pkg-config fuse --cflags --libs`
 CACHE_EXP=-DCACHE_EXPIRES_SEC=1
 HELPER=test_helper.cpp ../int64format.h
 

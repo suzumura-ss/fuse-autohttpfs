@@ -48,6 +48,13 @@ UrlStatMap::iterator UrlStatMap::find_with_expire(const char* path)
   return end();
 }
 
+void UrlStatMap::remove(const char* path)
+{
+  iterator it = find(path);
+  if(it!=end()) {
+    (*it).second.expire = 0; // force expired.
+  }
+}
 
 void UrlStatMap::trim(size_t count)
 {
@@ -112,6 +119,16 @@ void UrlStatCache::add(const char* path, const UrlStat& stat)
   pthread_mutex_unlock(&m_lock);
 
   if(over_capacity) pthread_kill(m_cleaner, SIGUSR2);
+}
+
+
+void UrlStatCache::remove(const char* path)
+{
+  pthread_mutex_lock(&m_lock);
+  {
+    m_stats.remove(path);
+  }
+  pthread_mutex_unlock(&m_lock);
 }
 
 

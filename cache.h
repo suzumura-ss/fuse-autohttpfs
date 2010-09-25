@@ -46,7 +46,6 @@ public:
   inline bool is_valid() const { return (expire>=time(NULL))? true: false; };
   inline bool is_dir() const { return !!(mode & S_IFDIR); }
   inline bool is_reg() const { return !!(mode & S_IFREG); }
-  inline void operator=(const UrlStat& s) { length = s.length; mode = s.mode; };
 
 public:
   mode_t    mode;
@@ -73,6 +72,7 @@ class UrlStatMap: public UrlStatBASE
 public:
   bool insert(const char* path, const UrlStat& us);
   iterator find_with_expire(const char* path);
+  void remove(const char* path);
   void trim(size_t count);
   void dump(Log& logger);
 
@@ -96,6 +96,7 @@ public:
     add(path, UrlStat(mode, length));
   };
   bool find(const char* path, UrlStat& stat);
+  void remove(const char* path);
   inline void set_expire(time_t sec) { m_expire_sec = sec; };
   inline uint64_t size() const { return m_stats.size(); }
   void trim();

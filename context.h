@@ -36,6 +36,7 @@ public:
   inline int get_attr(Log& logger, const char* path, UrlStat& stat) {
     return m_attr->get_attr(logger, path, stat);
   };
+  inline RemoteAttr& attr() { return *m_attr; };
 
 private:
   uint64_t m_seq;

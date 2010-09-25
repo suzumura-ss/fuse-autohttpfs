@@ -33,6 +33,9 @@ public:
     catch(...){}
   };
   int get_attr(Log& logger, const char* path, UrlStat& stat);
+  inline void remove_attr(Log& logger, const char* path) {
+    m_cache.remove(path);
+  };
 
 private:
   UrlStatCache  m_cache;

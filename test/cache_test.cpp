@@ -33,6 +33,19 @@ TEST(UrlStatMap, InsertAndFind)
   }
 }
 
+TEST(UrlStatMap, Remove)
+{
+  MTrace mt("UrlStatMap_Remove.mlog");
+
+  UrlStatMap usm;
+  usm.insert("Hello", UrlStat(2, 100, time(NULL)+1));
+
+  usm.remove("world");
+  EXPECT_TRUE(usm.end()!=usm.find_with_expire("Hello"));
+
+  usm.remove("Hello");
+  EXPECT_TRUE(usm.end()==usm.find_with_expire("Hello"));
+}
 
 TEST(UrlStatMap, Trim)
 {
@@ -100,6 +113,24 @@ TEST(UrlStatCache, InsertAndFind)
   usc.stop();
 }
 
+TEST(UrlStatCache, Remove)
+{
+  MTrace mt("UrlStatCache_Remove.mlog");
+
+  UrlStatCache usc;
+  usc.init();
+  UrlStat us;
+
+  usc.add("Hello", UrlStat(2, 100));
+
+  usc.remove("World");
+  EXPECT_EQ(true, usc.find("Hello", us));
+
+  usc.remove("Hello");
+  EXPECT_EQ(false, usc.find("Hello", us));
+
+  usc.stop();
+}
 
 TEST(UrlStatCache, Expire)
 {
@@ -131,7 +162,11 @@ void* cache_access_proc(void* ctx)
       EXPECT_EQ(ai % 100, us.mode);
       EXPECT_EQ(ai, us.length);
     }
-    usleep(50);
+    if(ai&3) {
+      snprintf(key, sizeof(key), "%d/%d", (int)pthread_self(), ai*4); // sometimes are invalid.
+    }
+    usc->remove(key);
+    usleep(30);
   }
 
   return NULL;

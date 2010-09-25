@@ -88,7 +88,10 @@ int CurlAccessor::head(Log& logger)
   curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, m_headers.slist());
   m_curl_code = curl_easy_perform(curl);
+
+  logger(Log::VERBOSE, "   [CurlAccessor::head(%s)] => %d\n", m_url.c_str(), m_res_status);
   if(m_curl_code!=CURLE_OK) log_request_failed(logger, __FUNCTION__);
+
   return m_res_status;
 }
 
@@ -98,7 +101,6 @@ int CurlAccessor::get(Log& logger, void* buf, uint64_t offset, uint64_t size)
   char range[256];
   snprintf(range, sizeof(range), "%"FINT64"u-%"FINT64"u", offset, offset+size-1);
 
-  logger(Log::VERBOSE, "   [CurlAccessor::get(%s)] offset=%"FINT64"u, size=%"FINT64"u, Range: %s\n", m_url.c_str(), offset, size, range);
 
   m_buffer = buf;
   m_buffer_size = size;
@@ -109,10 +111,14 @@ int CurlAccessor::get(Log& logger, void* buf, uint64_t offset, uint64_t size)
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   m_curl_code = curl_easy_perform(curl);
+
+  logger(Log::VERBOSE, "   [CurlAccessor::get(%s)] offset=%"FINT64"u, size=%"FINT64"u, Range: %s => %d\n", \
+                         m_url.c_str(), offset, size, range, m_res_status);
   if(m_curl_code==CURLE_PARTIAL_FILE) {
     logger(Log::WARN, "    [CurlAccessor::get(%s)] failed / size=%"FINT64"u, offset=%"FINT64"u, Range: %s\n", m_url.c_str(), size, offset, range);
   }
   if(m_curl_code!=CURLE_OK) log_request_failed(logger, __FUNCTION__);
+
   return m_res_status;
 }
 
