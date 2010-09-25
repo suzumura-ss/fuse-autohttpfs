@@ -1,4 +1,4 @@
-DEBUG_OPT=-g -O0
+# DEBUG_OPT=-g -O0
 CFLAGS=-Wall -O3 -pthread
 SRC=autohttpfs.cpp log.cpp curlaccessor.cpp context.cpp remoteattr.cpp cache.cpp
 FUSEOPT=`pkg-config fuse --cflags --libs`

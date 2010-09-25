@@ -134,13 +134,8 @@ size_t CurlAccessor::copy(const void* ptr, uint64_t size)
 
 void CurlAccessor::log_request_failed(Log& logger, const char* func)
 {
-  std::string msg = m_user_agent;
-  msg.append(" - rei"FINT64"uest failed / ");
-  msg.append("URL: ");
-  msg.append(m_url);
-  msg.append(" code: ");
-  msg.append(curl_easy_strerror(m_curl_code));
-  logger(Log::WARN, "[%s] %s(%d)\n", func, msg.c_str(), m_curl_code);
+  logger(Log::WARN, "[%s] request failed(%d) - URL: %s / CURLcode: %s(%d)\n", func,
+                    m_res_status, m_url.c_str(), curl_easy_strerror(m_curl_code), m_curl_code);
   m_res_status = -m_curl_code;
 }
 
