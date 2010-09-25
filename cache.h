@@ -24,8 +24,8 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <string>
-#include <vector>
 #include <map>
+#include <deque>
 #include "log.h"
 
 #ifndef CACHE_EXPIRES_SEC
@@ -72,9 +72,12 @@ class UrlStatMap: public UrlStatBASE
 {
 public:
   bool insert(const char* path, const UrlStat& us);
-  UrlStatMap::iterator find_with_expire(const char* path);
+  iterator find_with_expire(const char* path);
   void trim(size_t count);
   void dump(Log& logger);
+
+private:
+  std::deque<iterator> m_entries;
 };
 
 
