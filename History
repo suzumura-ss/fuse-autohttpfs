@@ -1,0 +1,14 @@
+=== Version History
+
+0.0.1:
+  First version.
+  The following features will not work.
+  - Directory entry listing (readdir(3)).
+      Return "." and ".." only.
+  - Cahce configuration.
+    - configure cache expires.
+      Fixed at compiled with "-DCACHE_EXPIRES_SEC=sec". default is 180[sec].
+    - configure max entries.
+      Fixed at compiled with "-CACHE_MAX_ENTRIES=count". default is 2000.
+  - Cache control.
+    - clear entries.
