@@ -49,8 +49,10 @@ public:
   void add_header(const char* key, const char* value);
   int head(Log& logger);
   int get(Log& logger, void* buf, uint64_t size, uint64_t offset);
+  int get(Log& logger, std::string& body);
   inline const char* url() { return m_url.c_str(); };
   inline uint64_t content_length() { return m_content_length; };
+  inline std::string& content_type() { return m_content_type; };
 
 private:
   CURL* curl;
@@ -60,15 +62,18 @@ private:
   CURLcode  m_curl_code;
   int m_res_status;
   uint64_t m_content_length;
+  std::string m_content_type;
   void* m_buffer;
   uint64_t m_buffer_size;
   uint64_t m_read_size;
+  std::string* m_body;
   size_t copy(const void* ptr, uint64_t size);
   void log_request_failed(Log& logger, const char* func);
 
 private:
   static size_t header_callback(const void* ptr, size_t size, size_t nmemb, void* _context);
   static size_t write_callback(const void* ptr, size_t size, size_t nmemb, void* _context);
+  static size_t write_callback_string(const void* ptr, size_t size, size_t nmemb, void* _context);
 };
   
 

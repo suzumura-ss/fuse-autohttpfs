@@ -42,6 +42,7 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
   // challenge "path/" to directory.
   {
     CurlAccessor ca(path);
+    ca.add_header("Accept", "text/json");
     int res = ca.head(logger);
     if((res==200) || (res==403)) {
       // path should be directory.

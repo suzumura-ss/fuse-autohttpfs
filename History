@@ -12,3 +12,9 @@
       Fixed at compiled with "-CACHE_MAX_ENTRIES=count". default is 2000.
   - Cache control.
     - clear entries.
+
+0.0.2:
+  - Implemented directory entry listing (readdir(3)).
+    It works with 'mod_index_json' for Apache.
+      http://github.com/ToshiyukiTerashita/mod_index_json
+    When processing readdir(3), autohttpfs request to the HTTP server with 'Accept: text/json;hash'.

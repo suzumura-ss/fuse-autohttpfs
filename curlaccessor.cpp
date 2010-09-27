@@ -16,6 +16,7 @@
 */
 
 #include "curlaccessor.h"
+#include "version.h"
 #include "log.h"
 #include "int64format.h"
 
@@ -49,7 +50,7 @@ CurlAccessor::CurlAccessor(const char* path, bool dir_access)
   m_url = (path[0]!='/')? path: path+1;
   if(dir_access) m_url.append("/");  
 
-  m_user_agent = "autohttpfs/0.0.1 ";
+  m_user_agent = PROGRAM_NAME "/" VERSION;
   m_user_agent.append(curl_version());
   m_res_status = 0;
   m_buffer = NULL;
@@ -123,6 +124,25 @@ int CurlAccessor::get(Log& logger, void* buf, uint64_t offset, uint64_t size)
 }
 
 
+int CurlAccessor::get(Log& logger, std::string& body)
+{
+  m_body = &body;
+  curl_easy_setopt(curl, CURLOPT_HTTPGET, 1);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, m_headers.slist());
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_string);
+  m_curl_code = curl_easy_perform(curl);
+
+  logger(Log::VERBOSE, "   [CurlAccessor::get(%s)] %d\n", m_url.c_str(), m_res_status);
+  if(m_curl_code==CURLE_PARTIAL_FILE) {
+    logger(Log::WARN, "    [CurlAccessor::get(%s)] failed\n", m_url.c_str());
+  }
+  if(m_curl_code!=CURLE_OK) log_request_failed(logger, __FUNCTION__);
+
+  return m_res_status;
+}
+
+
 size_t CurlAccessor::copy(const void* ptr, uint64_t size)
 {
   if(m_buffer==NULL) return 0;
@@ -150,17 +170,23 @@ size_t CurlAccessor::header_callback(const void* ptr, size_t size, size_t nmemb,
 {
   CurlAccessor* self = (CurlAccessor*)_context;
   const char* hdr = (const char*)ptr;
+  static const char CONTENT_LENGTH[] = "Content-Length:";
+  static const char CONTENT_TYPE[] = "Content-Type:";
 
-  std::string h = hdr;
-  h.resize(size*nmemb-1);
   if(strncasecmp(hdr, "HTTP/1.", sizeof("HTTP/1.")-1)==0) {
     int mv, status;
     if(sscanf(hdr, "HTTP/1.%d %d ", &mv, &status)==2) {
       self->m_res_status = status;
     }
   } else
-  if(strncasecmp(hdr, "Content-Length:", sizeof("Content-Length:")-1)==0) {
-    self->m_content_length = strtoull(hdr+sizeof("Content-Length:")-1, NULL, 10);
+  if(strncasecmp(hdr, CONTENT_LENGTH, sizeof(CONTENT_LENGTH)-1)==0) {
+    self->m_content_length = strtoull(hdr+sizeof(CONTENT_LENGTH)-1, NULL, 10);
+  } else
+  if(strncasecmp(hdr, CONTENT_TYPE, sizeof(CONTENT_TYPE)-1)==0) {
+    const char* h = hdr+sizeof(CONTENT_TYPE)-1, *t = hdr + size*nmemb-1;
+    while((strchr("\r\n\t ", *t)!=NULL) && (t>h)) t--;
+    while((strchr("\t ", *h)!=NULL) && (t>h)) h++;
+    self->m_content_type = std::string(h, t-h+1);
   }
   return nmemb;
 }
@@ -170,6 +196,14 @@ size_t CurlAccessor::write_callback(const void* ptr, size_t size, size_t nmemb, 
 { 
   CurlAccessor* self = (CurlAccessor*)_context;
   return self->copy(ptr, size*nmemb);
+}
+
+
+size_t CurlAccessor::write_callback_string(const void* ptr, size_t size, size_t nmemb, void* _context)
+{
+  CurlAccessor* self = (CurlAccessor*)_context;
+  self->m_body->append((const char*)ptr, size*nmemb);
+  return nmemb;
 }
 
 // vim: sw=2 sts=2 ts=4 expandtab :

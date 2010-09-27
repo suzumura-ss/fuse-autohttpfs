@@ -20,6 +20,7 @@
 #include "context.h"
 #include "remoteattr.h"
 #include "curlaccessor.h"
+#include "dirent.h"
 #include "log.h"
 #include "int64format.h"
 
@@ -82,12 +83,17 @@ void AutoHttpFs::setup()
   m_errno = 0;
   memset(&m_root_stat, 0, sizeof(struct stat));
   if(::stat(m_root.c_str(), &m_root_stat)) m_errno = errno;
+  m_root_stat.st_dev = 0;
+  m_root_stat.st_ino = 0;
+  m_root_stat.st_nlink = 1;
+  m_root_stat.st_uid = geteuid();
+  m_root_stat.st_gid = getegid();
   m_root_stat.st_mode &= (~(S_IWUSR|S_IWGRP|S_IWOTH));
   m_root_stat.st_mode &= (~S_IFMT);
   m_reguler_stat = m_root_stat;
-  m_root_stat.st_mode |= S_IFDIR;
+  m_root_stat.st_mode |= S_IFDIR|S_IXUSR;
   m_reguler_stat.st_mode &= (~(S_IXUSR|S_IXGRP|S_IXOTH));
-  m_reguler_stat.st_mode |= S_IFREG|S_IWUSR;
+  m_reguler_stat.st_mode |= S_IFREG;
 }
 
 
@@ -135,13 +141,41 @@ int AutoHttpFs::opendir(const char* path, struct fuse_file_info *ffi)
 // fuse::readdir
 int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *ffi)
 {
+  AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
-  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
+  AutoHttpFs* self = ctxs->fs();
+  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p, this=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx, self);
 
   if(ffi->fh==0) return -EINVAL;
 
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
+
+  CurlAccessor ca(path, true);
+  ca.add_header("Accept", "text/json;hash");
+  std::string json;
+  int r = ca.get(glog, json);
+  if(r!=200) return 0;
+  if(ca.content_type().compare("text/json")!=0) return 0;
+
+  Direntries de;
+  std::string err;
+  if(!de.from_json(json, err)) {
+    glog(Log::INFO, "JSON parse failed in %s - %s\n", __FUNCTION__, err.c_str());
+    return 0;
+  }
+  for(Direntries::iterator it = de.begin(); it!=de.end(); it++) {
+    struct stat st;
+    if((*it).mode &  S_IFDIR) {
+      memcpy(&st, self->stat_d(), sizeof(st));
+    } else {
+      memcpy(&st, self->stat_r(), sizeof(st));
+      if((*it).mode & S_IFLNK) st.st_mode |= S_IFLNK;
+      st.st_size = (*it).size;
+    }
+    filler(buf, (*it).name.c_str(), &st, 0);
+  }
+
   return 0;
 }
 

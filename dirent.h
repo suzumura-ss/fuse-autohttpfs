@@ -15,34 +15,36 @@
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "autohttpfs.h"
-#include "context.h"
-#include "version.h"
-#include <mcheck.h>
+#ifndef __INCLUDE_DIRENT_H__
+#define __INCLUDE_DIRENT_H__
+
+#include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "ext/picojson.h"
 
 
-// main loop.
-int main(int argc, char* argv[])
+class Direntry
 {
-  static fuse_operations oper;
-  AutoHttpFs::init_fuse_operations(oper);
+public:
+  inline Direntry() { mode = 0; size = 0; };
+  inline virtual ~Direntry() {};
+  void set_mode(const std::string& str);
 
-  AutoHttpFs fs;
-  const char* help = NULL;
-  fs.parse_args(help, argc, argv);
-  fs.setup();
+public:
+  std::string name;
+  mode_t  mode;
+  uint64_t size;
+};
 
-  int ret = fuse_main(argc, argv, &oper, (void*)&fs);
-  if(help) {
-    fprintf(stderr, "\n\n" \
-            PROGRAM_NAME " version " VERSION " / Copyright 2010 Toshiyuki Terashita\n" \
-            "    libcurl: " LIBCURL_VERSION "\n" \
-            "    fuse:    " LIBFUSE_VERSION "\n" \
-            "\n%s\n" \
-            , help);
-  }
 
-  return ret;
-}
+class Direntries: public std::vector<Direntry>
+{
+public:
+  inline Direntries() {};
+  bool from_json(std::string& json, std::string& err);
+};
 
+
+#endif // __INCLUDE_DIRENT_H__
 // vim: sw=2 sts=2 ts=4 expandtab :

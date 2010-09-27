@@ -15,34 +15,13 @@
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "autohttpfs.h"
-#include "context.h"
-#include "version.h"
-#include <mcheck.h>
+#ifndef __INCLUDE_VERSION_H__
+#define __INCLUDE_VERSION_H__
 
 
-// main loop.
-int main(int argc, char* argv[])
-{
-  static fuse_operations oper;
-  AutoHttpFs::init_fuse_operations(oper);
+#define PROGRAM_NAME  "autohttpfs"
+#define VERSION       "0.0.2"
 
-  AutoHttpFs fs;
-  const char* help = NULL;
-  fs.parse_args(help, argc, argv);
-  fs.setup();
 
-  int ret = fuse_main(argc, argv, &oper, (void*)&fs);
-  if(help) {
-    fprintf(stderr, "\n\n" \
-            PROGRAM_NAME " version " VERSION " / Copyright 2010 Toshiyuki Terashita\n" \
-            "    libcurl: " LIBCURL_VERSION "\n" \
-            "    fuse:    " LIBFUSE_VERSION "\n" \
-            "\n%s\n" \
-            , help);
-  }
-
-  return ret;
-}
-
+#endif // __INCLUDE_VERSION_H__
 // vim: sw=2 sts=2 ts=4 expandtab :
