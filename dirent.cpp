@@ -89,3 +89,5 @@ bool Direntries::from_json(std::string& json, std::string& err)
 
   return true;
 }
+
+// vim: sw=2 sts=2 ts=4 expandtab :
