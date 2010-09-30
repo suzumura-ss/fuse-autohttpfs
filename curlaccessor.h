@@ -52,7 +52,8 @@ public:
   int get(Log& logger, std::string& body);
   inline const char* url() { return m_url.c_str(); };
   inline uint64_t content_length() { return m_content_length; };
-  inline std::string& content_type() { return m_content_type; };
+  inline std::string content_type() { return m_content_type; };
+  inline std::string x_filestat() { return m_x_filestat; };
 
 private:
   CURL* curl;
@@ -63,6 +64,7 @@ private:
   int m_res_status;
   uint64_t m_content_length;
   std::string m_content_type;
+  std::string m_x_filestat;
   void* m_buffer;
   uint64_t m_buffer_size;
   uint64_t m_read_size;
