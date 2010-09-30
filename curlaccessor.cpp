@@ -146,7 +146,6 @@ int CurlAccessor::get(Log& logger, std::string& body)
 size_t CurlAccessor::copy(const void* ptr, uint64_t size)
 {
   if(m_buffer==NULL) return 0;
-
   if(m_buffer_size<m_read_size) return 0;
 
   uint64_t remain = m_buffer_size - m_read_size;
@@ -172,6 +171,7 @@ size_t CurlAccessor::header_callback(const void* ptr, size_t size, size_t nmemb,
   const char* hdr = (const char*)ptr;
   static const char CONTENT_LENGTH[] = "Content-Length:";
   static const char CONTENT_TYPE[] = "Content-Type:";
+  static const char X_FILESTAT[] = "X-FileStat-Json:";
 
   if(strncasecmp(hdr, "HTTP/1.", sizeof("HTTP/1.")-1)==0) {
     int mv, status;
@@ -187,6 +187,9 @@ size_t CurlAccessor::header_callback(const void* ptr, size_t size, size_t nmemb,
     while((strchr("\r\n\t ", *t)!=NULL) && (t>h)) t--;
     while((strchr("\t ", *h)!=NULL) && (t>h)) h++;
     self->m_content_type = std::string(h, t-h+1);
+  } else
+  if(strncasecmp(hdr, X_FILESTAT, sizeof(X_FILESTAT)-1)==0) {
+    self->m_x_filestat = hdr+sizeof(X_FILESTAT)-1;
   }
   return nmemb;
 }
