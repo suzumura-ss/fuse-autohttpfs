@@ -19,44 +19,13 @@
 #include "dirent.h"
 
 
-// class Direntry implements.
-void Direntry::set_mode(const std::string& str)
-{
-  switch(str[0]) {
-  case 'd':
-    mode = S_IFDIR;
-    break;
-  case 'l':
-    mode = S_IFLNK;
-    break;
-  case '-':
-  default:
-    mode = S_IFREG;
-    break;
-  case '\0':
-    break;
-  }
-  if(str.size()!=11) return;
-
-  if(str[1]=='r') mode |= S_IRUSR;
-  if(str[2]=='w') mode |= S_IWUSR;
-  if(str[3]=='x') mode |= S_IXUSR;
-  if(str[4]=='r') mode |= S_IRGRP;
-  if(str[5]=='w') mode |= S_IWGRP;
-  if(str[6]=='x') mode |= S_IXGRP;
-  if(str[7]=='r') mode |= S_IROTH;
-  if(str[8]=='w') mode |= S_IWOTH;
-  if(str[9]=='x') mode |= S_IXOTH;
-}
-
-
-
 // class Direntries implements.
-bool Direntries::from_json(std::string& json, std::string& err)
+void Direntries::from_json(std::string& json)
 {
+  std::string err;
   picojson::value root;
   picojson::parse<std::string::iterator>(root, json.begin(), json.end(), &err);
-  if(!err.empty()) return false;
+  if(!err.empty()) throw err;
 
   clear();
 
@@ -65,11 +34,12 @@ bool Direntries::from_json(std::string& json, std::string& err)
     picojson::array obj = root.get<picojson::array>();
     picojson::array::iterator it;
     for(it=obj.begin(); it!=obj.end(); it++) {
-      Direntry item;
-      item.name = (*it).get<std::string>();
-      push_back(item);
+      FileStat stat(S_IFDIR);
+      stat.name = (*it);
+      push_back(stat);
     }
-    if(size()>0) return true; 
+    if(size()==0) throw std::string("Empty array."); 
+    return; 
   }
 
   // try hash: {"name":{"size":length,"mode":"modestr"}, ... }
@@ -78,16 +48,16 @@ bool Direntries::from_json(std::string& json, std::string& err)
     picojson::object::iterator it;
     for(it=obj.begin(); it!=obj.end(); it++) {
       std::pair<std::string, picojson::value> val = (*it);
-      Direntry item;
-      item.name = (*it).first;
-      item.size = (uint64_t)((*it).second.get("size").get<double>());
-      item.set_mode((*it).second.get("mode").get<std::string>().c_str());
-      push_back(item);
+      FileStat stat;
+      stat.name = val.first;
+      stat.from_json(val.second);
+      push_back(stat);
     }
-    if(size()>0) return true; 
+    if(size()==0) throw std::string("Empty hash.");
+    return;
   }
 
-  return true;
+  throw std::string("Unknown json type.");
 }
 
 // vim: sw=2 sts=2 ts=4 expandtab :

@@ -159,9 +159,10 @@ int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off
   if(ca.content_type().compare("text/json")!=0) return 0;
 
   Direntries de;
-  std::string err;
-  if(!de.from_json(json, err)) {
-    glog(Log::INFO, "JSON parse failed in %s - %s\n", __FUNCTION__, err.c_str());
+  try { de.from_json(json); }
+  catch(std::string e) {
+    glog(Log::INFO, "JSON parse failed in %s - %s\n", __FUNCTION__, e.c_str());
+    std::string e;
     return 0;
   }
   for(Direntries::iterator it = de.begin(); it!=de.end(); it++) {

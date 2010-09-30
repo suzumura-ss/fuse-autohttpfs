@@ -1,6 +1,7 @@
 # DEBUG_OPT=-g -O0 -fno-inline
 CFLAGS=-Wall -O3 -pthread
-SRC=autohttpfs.cpp log.cpp curlaccessor.cpp context.cpp remoteattr.cpp cache.cpp dirent.cpp
+SRC=autohttpfs.cpp log.cpp curlaccessor.cpp context.cpp remoteattr.cpp \
+    cache.cpp dirent.cpp filestat.cpp ext/time_iso8601.cpp
 FUSEOPT=`pkg-config fuse --cflags --libs`
 CURLOPT=`pkg-config libcurl --cflags --libs`
 VERSIONS =-DLIBFUSE_VERSION=\"`pkg-config fuse --modversion`\"
