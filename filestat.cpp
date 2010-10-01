@@ -26,17 +26,14 @@ static mode_t str_to_mode(const std::string str)
   mode_t mode = 0;
 
   switch(str[0]) {
-  case 'd':
-    mode = S_IFDIR;
-    break;
-  case 'l':
-    mode = S_IFLNK;
-    break;
-  case '-':
+  case 'd': mode = S_IFDIR;   break;
+  case 'c': mode = S_IFCHR;   break;
+  case 'b': mode = S_IFBLK;   break;
+  case '-': mode = S_IFREG;   break;
+  case 'p': mode = S_IFIFO;   break;
+  case 'l': mode = S_IFLNK;   break;
+  case 's': mode = S_IFSOCK;  break;
   default:
-    mode = S_IFREG;
-    break;
-  case '\0':
     break;
   }
   if(str.size()!=10) return mode;
@@ -78,9 +75,25 @@ void FileStat::from_json(std::string& json)
 
 void FileStat::from_json(picojson::value& val)
 {
-  mode = str_to_mode(val.get("mode").get<std::string>());
-  size = (uint64_t)(val.get("size").get<double>());
-  mtime = TimeIso8601(val.get("mtime").get<std::string>().c_str());
+  picojson::value v;
+
+  if(val.is<picojson::object>()) {
+    v = val.get("mode");
+    if(!v.is<picojson::null>()) {
+      mode = str_to_mode(v.get<std::string>());
+    }
+
+    v = val.get("size");
+    if(!v.is<picojson::null>()) {
+      size = (uint64_t)(v.get<double>());
+    }
+
+    v = val.get("mtime");
+    if(!v.is<picojson::null>()) {
+      try { mtime = TimeIso8601(v.get<std::string>().c_str()); }
+      catch(const char* e) {}
+    }
+  }
 }
   
 

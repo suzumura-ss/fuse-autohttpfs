@@ -9,7 +9,7 @@ TEST(UrlStatMap, Initialize)
   MTrace mt("UrlStatMap_Initialize.mlog");
 
   UrlStatMap usm;
-  EXPECT_EQ(0, usm.size());
+  EXPECT_EQ(0U, usm.size());
 }
 
 
@@ -19,13 +19,13 @@ TEST(UrlStatMap, InsertAndFind)
 
   UrlStatMap usm;
   EXPECT_EQ(true, usm.insert("Hello", UrlStat(2, 100)));
-  EXPECT_EQ(1, usm.size());
+  EXPECT_EQ(1U, usm.size());
 
   {
     UrlStatMap::iterator it = usm.find("Hello");
     EXPECT_TRUE(usm.end()!=it);
-    EXPECT_EQ(2, (*it).second.mode);
-    EXPECT_EQ(100, (*it).second.length);
+    EXPECT_EQ(2U, (*it).second.mode);
+    EXPECT_EQ(100U, (*it).second.length);
   }
   {
     UrlStatMap::iterator it = usm.find("World");
@@ -56,22 +56,22 @@ TEST(UrlStatMap, Trim)
   usm.insert("bar", UrlStat(2, 200));
   usm.insert("baz", UrlStat(3, 300));
 
-  EXPECT_EQ(3, usm.size());
+  EXPECT_EQ(3U, usm.size());
 
   usm.trim(1);
-  EXPECT_EQ(2, usm.size());
+  EXPECT_EQ(2U, usm.size());
   EXPECT_TRUE(usm.end()==usm.find("foo"));
   EXPECT_TRUE(usm.end()!=usm.find("bar"));
   EXPECT_TRUE(usm.end()!=usm.find("baz"));
 
   usm.trim(1);
-  EXPECT_EQ(1, usm.size());
+  EXPECT_EQ(1U, usm.size());
   EXPECT_TRUE(usm.end()==usm.find("foo"));
   EXPECT_TRUE(usm.end()==usm.find("bar"));
   EXPECT_TRUE(usm.end()!=usm.find("baz"));
 
   usm.trim(1);
-  EXPECT_EQ(0, usm.size());
+  EXPECT_EQ(0U, usm.size());
   EXPECT_TRUE(usm.end()==usm.find("foo"));
   EXPECT_TRUE(usm.end()==usm.find("bar"));
   EXPECT_TRUE(usm.end()==usm.find("baz"));
@@ -100,14 +100,14 @@ TEST(UrlStatCache, InsertAndFind)
   {
     UrlStat us(0, 0);
     EXPECT_EQ(true, usc.find("Hello", us));
-    EXPECT_EQ(2, us.mode);
-    EXPECT_EQ(100, us.length);
+    EXPECT_EQ(2U, us.mode);
+    EXPECT_EQ(100U, us.length);
   }
   {
     UrlStat us(0, 0);
     EXPECT_EQ(false,usc.find("World", us));
-    EXPECT_EQ(0, us.mode);
-    EXPECT_EQ(0, us.length);
+    EXPECT_EQ(0U, us.mode);
+    EXPECT_EQ(0U, us.length);
   }
 
   usc.stop();
@@ -153,7 +153,7 @@ void* cache_access_proc(void* ctx)
 {
   UrlStatCache* usc = (UrlStatCache*)ctx;
 
-  for(int ai=0; ai<10000; ai++) {
+  for(unsigned ai=0; ai<10000; ai++) {
     char key[100];
     UrlStat us;
     snprintf(key, sizeof(key), "%d/%d", (int)pthread_self(), ai);
