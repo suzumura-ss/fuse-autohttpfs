@@ -39,6 +39,7 @@ public:
 
 private:
   UrlStatCache  m_cache;
+  void store(UrlStat& stat, const char*path, mode_t mode, std::string x_filestat);
 };
 
 

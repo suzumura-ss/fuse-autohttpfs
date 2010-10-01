@@ -17,6 +17,7 @@
 
 #include <ctype.h>
 #include "ext/time_iso8601.h"
+#include "int64format.h"
 #include "filestat.h"
 
 

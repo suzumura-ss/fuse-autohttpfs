@@ -115,7 +115,15 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
     memcpy(stbuf, self->stat_d(), sizeof(*stbuf));
   } else {
     memcpy(stbuf, self->stat_r(), sizeof(*stbuf));
+  }
+  if(!(us.mode & S_IFMT)) {
+    stbuf->st_mode = us.mode & (~(S_IWUSR|S_IWGRP|S_IWOTH));
+  }
+  if(us.length!=0) {
     stbuf->st_size = us.length;
+  }
+  if(us.mtime!=0) {
+    stbuf->st_atime = stbuf->st_ctime = stbuf->st_mtime = us.mtime;
   }
   return 0;
 }

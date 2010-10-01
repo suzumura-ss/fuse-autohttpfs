@@ -26,7 +26,7 @@
 class TimeIso8601
 {
 public:
-  inline TimeIso8601() { self = 0; };
+  inline TimeIso8601(time_t v) { self = v; };
   inline TimeIso8601(const char* _str) { operator=(_str); }
 
   inline operator time_t() { return self; };

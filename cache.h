@@ -37,9 +37,10 @@
 class UrlStat
 {
 public:
-  inline UrlStat(mode_t m = S_IFDIR, uint64_t l = 0, time_t e = 0) {
+  inline UrlStat(mode_t m = S_IFDIR, uint64_t l = 0, time_t t = 0, time_t e = 0) {
     mode = m;
     length = l;
+    mtime = t;
     expire = e;
   };
   inline virtual ~UrlStat() {};
@@ -50,6 +51,7 @@ public:
 public:
   mode_t    mode;
   uint64_t  length;
+  time_t    mtime;
   time_t    expire;
 };
 

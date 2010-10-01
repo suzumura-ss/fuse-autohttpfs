@@ -38,7 +38,7 @@ TEST(UrlStatMap, Remove)
   MTrace mt("UrlStatMap_Remove.mlog");
 
   UrlStatMap usm;
-  usm.insert("Hello", UrlStat(2, 100, time(NULL)+1));
+  usm.insert("Hello", UrlStat(2, 100, 0, time(NULL)+1));
 
   usm.remove("world");
   EXPECT_TRUE(usm.end()!=usm.find_with_expire("Hello"));

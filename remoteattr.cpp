@@ -18,9 +18,29 @@
 #include <errno.h>
 #include "remoteattr.h"
 #include "curlaccessor.h"
+#include "filestat.h"
+#include "ext/time_iso8601.h"
 
 
 // RemoteAttr class implements.
+void RemoteAttr::store(UrlStat& stat, const char* path, mode_t mode, std::string x_filestat)
+{
+  if(!x_filestat.empty()) {
+    try {
+      FileStat fs(x_filestat);
+      stat = UrlStat(fs.mode, fs.size, fs.mtime);
+      m_cache.add(path, stat);
+    }
+    catch(std::string e) {
+      m_cache.add(path, stat);
+      throw e;
+    }
+  } else {
+    m_cache.add(path, stat);
+  }
+}
+
+
 int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
 {
   // check 'root' directory.
@@ -36,6 +56,8 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
 
   // check cache.
   if(m_cache.find(path, stat)) {
+    TimeIso8601 t(stat.mtime);
+    logger(Log::DEBUG, "   RemoteAttr::get_attr(%s:FIND): %05o %s\n", path, stat.mode, ((std::string)t).c_str());
     return 0;
   }
 
@@ -46,8 +68,10 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
     int res = ca.head(logger);
     if((res==200) || (res==403)) {
       // path should be directory.
-      stat = UrlStat(S_IFDIR);
-      m_cache.add(path, stat);
+      try{ store(stat, path, S_IFDIR, ca.x_filestat()); }
+      catch(std::string e) {
+        logger(Log::WARN, "   RemoteAttr::get_attr(%s:DIR): %s\n", path, e.c_str());
+      }
       return 0;
     }
   }
@@ -55,11 +79,14 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
   // challenge "path" to regular file.
   {
     CurlAccessor ca(path, false);
+    ca.add_header("Accept", "text/json");
     int res = ca.head(logger);
     if(res==200) {
       // path is regular file.
-      stat = UrlStat(S_IFREG, ca.content_length());
-      m_cache.add(path, stat);
+      try{ store(stat, path, S_IFREG, ca.x_filestat()); }
+      catch(std::string e) {
+        logger(Log::WARN, "   RemoteAttr::get_attr(%s:REG): %s\n", path, e.c_str());
+      }
       return 0;
     }
   }
