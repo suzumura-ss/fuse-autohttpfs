@@ -116,7 +116,7 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
   } else {
     memcpy(stbuf, self->stat_r(), sizeof(*stbuf));
   }
-  if(!(us.mode & S_IFMT)) {
+  if(us.mode & (~S_IFMT)) {
     stbuf->st_mode = us.mode & (~(S_IWUSR|S_IWGRP|S_IWOTH));
   }
   if(us.length!=0) {
@@ -158,6 +158,7 @@ int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off
 
   filler(buf, ".", NULL, 0);
   filler(buf, "..", NULL, 0);
+  if(strcmp(path, "/")==0) return 0;
 
   CurlAccessor ca(path, true);
   ca.add_header("Accept", "text/json;hash");
