@@ -18,3 +18,9 @@
     It works with 'mod_index_json' for Apache.
       http://github.com/ToshiyukiTerashita/mod_index_json
     When processing readdir(3), autohttpfs request to the HTTP server with 'Accept: text/json;hash'.
+
+0.0.3:
+  - Implemented file/directory of st_mtime (stat(2), readdir(3)).
+    st_atime and st_ctime are equal to st_mtime.
+    It works with 'mod_index_json 0.0.3' for Apache.
+      http://github.com/ToshiyukiTerashita/mod_index_json
