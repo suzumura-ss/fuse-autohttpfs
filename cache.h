@@ -25,7 +25,7 @@
 #include <pthread.h>
 #include <string>
 #include <map>
-#include <deque>
+#include <list>
 #include "log.h"
 
 #ifndef CACHE_EXPIRES_SEC
@@ -79,7 +79,7 @@ public:
   void dump(Log& logger);
 
 private:
-  std::deque<iterator> m_entries;
+  std::list<iterator> m_entries;
 };
 
 
