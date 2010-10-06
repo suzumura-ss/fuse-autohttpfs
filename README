@@ -5,21 +5,27 @@ Copyrigyt 2010 Toshiyuki Terashita.
 ===
 mountpoint以降のパス名をURLとみなしてHTTPリクエストします。
 
-==== example 1
+====
+example 1
   $ autohttpfs -o ro /mnt/httpfs/
+
 localhost に httpd を起動しておけば以下は同じ動作になります。
   $ curl localhost/index.html
   $ cat /mnt/httpfs/localhost/index.html
 
-==== example 2:Apaceでアクセスする場合
+
+====
+example 2:Apaceでアクセスする場合
+
 /etc/fuse.conf に以下を設定します。
   user_allow_other
+
 mountオプションを追加してapacheからのアクセスを許可します。
   $ autohttpfs -o ro,noexec,allow_other,default_permissions /var/www/html/httpfs/
 
 
 === .proc/
-'mountpoint/.proc' は /proc のようなコントーロールファイルです。
+'mountpoint/.proc' は /proc のようなコントロールファイルです。
   .proc/
     +- cache/
         +- enable       0:キャッシュ無効 1:有効
