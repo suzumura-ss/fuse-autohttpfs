@@ -15,34 +15,34 @@
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __INCLUDE_REMOREATTR_H__
-#define __INCLUDE_REMOREATTR_H__
+#ifndef __INCLUDE_AUTOHTTPFSPROCMAP_H__
+#define __INCLUDE_AUTOHTTPFSPROCMAP_H__
 
-#include "cache.h"
+#include <string>
+#include <map>
+#include "proc.h"
 #include "log.h"
 
 
-class RemoteAttr
+typedef std::map<std::string, ProcAbstract*> ProcMap;
+
+class AutoHttpFsProc
 {
 public:
-  inline RemoteAttr() {
-    m_cache.init();
-  };
-  inline virtual ~RemoteAttr() {
-    try { m_cache.stop(); }
-    catch(...){}
-  };
-  inline UrlStatCache& cache() { return m_cache; };
-  int get_attr(Log& logger, const char* path, UrlStat& stat);
-  inline void remove_attr(Log& logger, const char* path) {
-    m_cache.remove(path);
-  };
+  inline AutoHttpFsProc() {};
+  inline virtual ~AutoHttpFsProc() {};
+
+  int getattr(Log& logger, const char* path, struct stat& stbuf);
+  int opendir(Log& logger, const char* path, struct fuse_file_info& ffi);
+  int truncate(Log& logger, const char* path, off_t size);
+  int open(Log& logger, const char* path, struct fuse_file_info& ffi);
+  void init();
 
 private:
-  UrlStatCache  m_cache;
-  void store(UrlStat& stat, const char*path, mode_t mode, std::string x_filestat);
+  ProcMap m_procs;
+  void mount(const char* name, ProcAbstract* proc, Proc_Dir* base = NULL);
 };
 
 
-#endif // __INCLUDE_REMOREATTR_H__
+#endif // __INCLUDE_AUTOHTTPFSPROCMAP_H__
 // vim: sw=2 sts=2 ts=4 expandtab :

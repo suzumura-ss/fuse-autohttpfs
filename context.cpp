@@ -25,6 +25,7 @@ AutoHttpFsContext::AutoHttpFsContext(uint64_t seq, RemoteAttr& attr)
 {
   m_seq = seq;
   m_attr = &attr;
+  proc = NULL;
 }
 
 
@@ -44,6 +45,7 @@ AutoHttpFsContexts::AutoHttpFsContexts(AutoHttpFs* fs)
 
   m_fs = fs;
   m_contexts.clear();
+  m_proc.init();
   sequence = 1;
 }
 

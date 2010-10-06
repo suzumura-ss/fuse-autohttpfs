@@ -19,10 +19,6 @@
 #include "cache.h"
 #include "int64format.h"
 
-#ifndef CACHE_MAX_ENTRIES
-# define CACHE_MAX_ENTRIES (2000)
-#endif
-
 
 // UrlStatMap class implements.
 bool UrlStatMap::insert(const char* path, const UrlStat& us)
@@ -87,7 +83,6 @@ void UrlStatCache::init()
   pthread_mutexattr_init(&attr);
   pthread_mutex_init(&m_lock, &attr);
 
-  m_max_entries = CACHE_MAX_ENTRIES;
   m_stop_cleaner = false;
   signal(SIGUSR2, alarm_handler);
   pthread_create(&m_cleaner, NULL, cleaner, (void*)this);

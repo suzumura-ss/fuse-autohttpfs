@@ -32,6 +32,9 @@
 # define CACHE_EXPIRES_SEC (180) // sec
 #endif
 
+#ifndef CACHE_MAX_ENTRIES
+# define CACHE_MAX_ENTRIES (2000)
+#endif
 
 
 class UrlStat
@@ -86,7 +89,10 @@ private:
 class UrlStatCache
 {
 public:
-  inline UrlStatCache() { m_expire_sec = CACHE_EXPIRES_SEC; };
+  inline UrlStatCache() {
+    m_expire_sec = CACHE_EXPIRES_SEC;
+    m_max_entries = CACHE_MAX_ENTRIES;
+  };
   inline virtual ~UrlStatCache() {
     try { m_stats.clear(); }
     catch(...){}
@@ -99,16 +105,22 @@ public:
   };
   bool find(const char* path, UrlStat& stat);
   void remove(const char* path);
-  inline void set_expire(time_t sec) { m_expire_sec = sec; };
-  inline uint64_t size() const { return m_stats.size(); }
+
+  inline bool enabled() const { return true; };
+  inline void enabled(bool v) { };
+  inline uint64_t expire() const { return m_expire_sec; };
+  inline void expire(time_t sec) { m_expire_sec = sec; };
+  inline uint64_t size() const { return m_stats.size(); };
+  inline uint64_t max_entries() const { return m_max_entries; };
+  inline void max_entries(uint64_t v) { m_max_entries = v; };
   void trim();
   void dump(Log& logger);
 
 private:
   pthread_mutex_t m_lock;
   UrlStatMap m_stats;
-  size_t  m_max_entries;
   time_t  m_expire_sec;
+  size_t  m_max_entries;
   static void* cleaner(void*);
   static void alarm_handler(int);
   pthread_t m_cleaner;

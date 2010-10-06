@@ -24,6 +24,7 @@
 #include <map>
 #include <fuse/fuse.h>
 #include "remoteattr.h"
+#include "procmap.h"
 
 
 class AutoHttpFs;
@@ -37,6 +38,9 @@ public:
     return m_attr->get_attr(logger, path, stat);
   };
   inline RemoteAttr& attr() { return *m_attr; };
+
+public:
+  ProcAbstract* proc;
 
 private:
   uint64_t m_seq;
@@ -54,6 +58,7 @@ public:
     fuse_context* fc = fuse_get_context();
     return (AutoHttpFsContexts*)(fc->private_data);
   };
+  inline RemoteAttr& remote_attr() { return m_attr; };
   AutoHttpFsContext* alloc_context();
   void	release_context(AutoHttpFsContext* ctx);
   AutoHttpFsContext* find(uint64_t seq);
@@ -62,6 +67,19 @@ public:
   };
   inline AutoHttpFs* fs() const { return m_fs; };
 
+  inline int proc_getattr(Log& logger, const char* path, struct stat& stbuf) {
+    return m_proc.getattr(logger, path, stbuf);
+  };
+  inline int proc_opendir(Log& logger, const char* path, struct fuse_file_info& ffi) {
+    return m_proc.opendir(logger, path, ffi);
+  };
+  inline int proc_truncate(Log& logger, const char* path, off_t size) {
+    return m_proc.truncate(logger, path, size);
+  };
+  inline int proc_open(Log& logger, const char* path, struct fuse_file_info& ffi) {
+    return m_proc.open(logger, path, ffi);
+  };
+
 private:
   AutoHttpFs* m_fs;
   pthread_mutex_t m_lock;
@@ -69,6 +87,7 @@ private:
   uint64_t	sequence;
   int64_t   active_fds;
   RemoteAttr m_attr;
+  AutoHttpFsProc m_proc;
 };
 #define	AUTOHTTPFSCONTEXTS	(*AutoHttpFsContexts::ctxs())
 

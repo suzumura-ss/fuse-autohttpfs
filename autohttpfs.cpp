@@ -44,7 +44,7 @@ void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
              "    --loglevel=N    syslog level (default: 5 (NOTE))\n";
     }
   }
-  glog.set_level((Log::LOGLEVEL)ll);
+  glog.loglevel((Log::LOGLEVEL)ll);
 }
 
 
@@ -107,6 +107,10 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
   memset(stbuf, 0, sizeof(struct stat));
   if(self->errcode()!=0) return self->errcode();
 
+  // for proc/.
+  if(ctxs->proc_getattr(glog, path, *stbuf)==0) return 0;
+
+  // for normal files.
   UrlStat us;
   int r = ctxs->get_attr(glog, path, us);
   if(r!=0) return r;
@@ -132,15 +136,23 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
 // fuse::opendir
 int AutoHttpFs::opendir(const char* path, struct fuse_file_info *ffi)
 {
-  AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
-  ffi->fh = ctx->seq();
-  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
+  AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
+  glog(Log::DEBUG, ">> %s(%s) ctxs=%p\n", __FUNCTION__, path, ctxs);
 
+  // for proc/.
+  if(ctxs->proc_opendir(glog, path, *ffi)==0) return 0;
+
+  // for normal files.
   UrlStat us;
-  int r = ctx->get_attr(glog, path, us);
+  int r = ctxs->get_attr(glog, path, us);
   if(r!=0) return r;
 
-  if(us.is_dir()) return 0;
+  if(us.is_dir()) {
+    AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
+    ffi->fh = ctx->seq();
+    glog(Log::DEBUG, "   => fh=%"FINT64"d, ctx=%p\n", ffi->fh, ctx);
+    return 0;
+  }
   if(us.is_reg()) return -ENOTDIR;
   return -ENOENT;
 }
@@ -152,7 +164,7 @@ int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off
   AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   AutoHttpFs* self = ctxs->fs();
-  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p, this=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx, self);
+  glog(Log::DEBUG, ">> %s(%s) fh=%"FINT64"d, ctx=%p, this=%p\n", __FUNCTION__, path, ffi->fh, ctx, self);
 
   if(ffi->fh==0) return -EINVAL;
 
@@ -160,6 +172,10 @@ int AutoHttpFs::readdir(const char *path, void *buf, fuse_fill_dir_t filler, off
   filler(buf, "..", NULL, 0);
   if(strcmp(path, "/")==0) return 0;
 
+  // for proc/.
+  if(ctx->proc!=NULL) return ctx->proc->readdir(glog, buf, filler, offset);
+
+  // for normal files.
   CurlAccessor ca(path, true);
   ca.add_header("Accept", "text/json;hash");
   std::string json;
@@ -196,24 +212,50 @@ int AutoHttpFs::releasedir(const char* path, struct fuse_file_info *ffi)
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
+  // for proc/.
+  if(ctx->proc) ctx->proc->releasedir(glog);
+
+  // for normal files.
   AUTOHTTPFSCONTEXTS.release_context(ctx);
   return 0;
+}
+
+
+// fuse::truncate
+int AutoHttpFs::truncate(const char* path, off_t size)
+{
+  AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
+  glog(Log::DEBUG, ">> %s(%s) ctxs=%p\n", __FUNCTION__, path, ctxs);
+
+  // for proc/.
+  if(ctxs->proc_truncate(glog, path, size)==0) return 0;
+
+  // for normal files.
+  return -ENOSYS;
 }
 
 
 // fuse::open
 int AutoHttpFs::open(const char* path, struct fuse_file_info* ffi)
 {
-  AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
-  ffi->fh = ctx->seq();
-  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
+  AutoHttpFsContexts* ctxs = &AUTOHTTPFSCONTEXTS;
+  glog(Log::DEBUG, ">> %s(%s) ctxs=%p\n", __FUNCTION__, path, ctxs);
 
+  // for proc/.
+  if(ctxs->proc_open(glog, path, *ffi)==0) return 0;
+
+  // for normal files.
   UrlStat us;
-  int r = ctx->get_attr(glog, path, us);
+  int r = ctxs->get_attr(glog, path, us);
   if(r!=0) return r;
 
-  if(us.is_reg()) return 0;
-  if(us.is_dir()) return -EACCES;
+  if(us.is_reg()) {
+    AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
+    ffi->fh = ctx->seq();
+    glog(Log::DEBUG, "   => fh=%"FINT64"d, ctx=%p\n", ffi->fh, ctx);
+    return 0;
+  }
+  if(us.is_dir()) return -EINVAL;
   return -ENOENT;
 }
 
@@ -227,6 +269,10 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
 
   if(ffi->fh==0) return -EINVAL;
 
+  // for proc/.
+  if(ctx->proc) return ctx->proc->read(glog, buf, size, offset);
+
+  // for normal files.
   UrlStat us;
   int r = ctx->get_attr(glog, path, us);
   if(r!=0) return r;
@@ -247,12 +293,47 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
 }
 
 
+// fuse::write
+int AutoHttpFs::write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info* ffi)
+{
+  AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
+  glog(Log::DEBUG, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p, size=%"FINT64"d, offset=%"FINT64"d\n", \
+                        __FUNCTION__, path, ffi, ffi->fh, ctx, (off_t)size, offset);
+
+  if(ffi->fh==0) return -EINVAL;
+
+  // for proc/.
+  if(ctx->proc) return ctx->proc->write(glog, buf, size, offset);
+
+  // for normal files.
+  return -ENOSYS;
+}
+
+
+// fuse::flush
+int AutoHttpFs::flush(const char* path, struct fuse_file_info* ffi)
+{
+  AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
+  glog(Log::INFO, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
+
+  // for proc/.
+  if(ctx->proc) ctx->proc->flush(glog, ffi);
+
+  // for normal files.
+  return -ENOSYS;
+}
+
+
 // fuse::release
 int AutoHttpFs::release(const char* path, struct fuse_file_info* ffi)
 {
   AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.find(ffi->fh);
   glog(Log::INFO, ">> %s(%s) ffi=%p, fh=%"FINT64"d, ctx=%p\n", __FUNCTION__, path, ffi, ffi->fh, ctx);
 
+  // for proc/.
+  if(ctx->proc) ctx->proc->release(glog);
+
+  // for normal files.
   AUTOHTTPFSCONTEXTS.release_context(ctx);
   return 0;
 }
@@ -265,7 +346,7 @@ void* AutoHttpFs::init(struct fuse_conn_info* fci)
   AutoHttpFs* self = (AutoHttpFs*)(fc->private_data);
 
   fci->async_read   = 1;
-  fci->max_write    = 0;
+  fci->max_write    = 16;
   fci->max_readahead = 0x20000;
 
   AutoHttpFsContexts* ctxs = new AutoHttpFsContexts(self);
@@ -291,8 +372,11 @@ void AutoHttpFs::init_fuse_operations(fuse_operations& oper)
   oper.opendir    = opendir;
   oper.readdir    = readdir;
   oper.releasedir = releasedir;
+  oper.truncate   = truncate;
   oper.open       = open;
   oper.read       = read;
+  oper.write      = write;
+  oper.flush      = flush;
   oper.release    = release;
   oper.init       = init;
   oper.destroy    = destroy;

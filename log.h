@@ -40,7 +40,8 @@ public:
 
   Log(const char* ident, int facility = LOG_LOCAL7, LOGLEVEL level = DEVELOP);
   virtual ~Log();
-  inline void set_level(LOGLEVEL level) { m_level = level; };
+  inline LOGLEVEL loglevel() const { return m_level; };
+  inline void loglevel(LOGLEVEL level) { m_level = level; };
   void vlog(int level, const char* fmt, va_list va) const __attribute__ ((__format__ (__printf__, 3, 0)));
   void operator() (int level, const char* fmt, ...) const __attribute__ ((__format__ (__printf__, 3, 4)));
 

@@ -60,8 +60,11 @@ private:
   static int opendir(const char* path, struct fuse_file_info *ffi);
   static int readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *ffi);
   static int releasedir(const char* path, struct fuse_file_info *ffi);
+  static int truncate(const char* path, off_t size);
   static int open(const char* path, struct fuse_file_info* ffi);
   static int read(const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* ffi);
+  static int write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info* ffi);
+  static int flush(const char* path, struct fuse_file_info* ffi);
   static int release(const char* path, struct fuse_file_info* ffi);
   static void* init(struct fuse_conn_info* fci);
   static void destroy(void* user_data);
