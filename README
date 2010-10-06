@@ -16,3 +16,16 @@ localhost に httpd を起動しておけば以下は同じ動作になります
   user_allow_other
 mountオプションを追加してapacheからのアクセスを許可します。
   $ autohttpfs -o ro,noexec,allow_other,default_permissions /var/www/html/httpfs/
+
+
+=== .proc/
+'mountpoint/.proc' は /proc のようなコントーロールファイルです。
+  .proc/
+    +- cache/
+        +- enable       0:キャッシュ無効 1:有効
+        +- entries      有効期限を切れたものを含めたキャッシュエントリ数
+        +- expire       キャッシュの有効期限(単位:sec)
+        +- loglevel     syslogレベル
+        +- max_entries  最大キャッシュエントリ数
+                        エントリからの削除を開始するしきい値です。
+                        entries がこの値を越える事があります。

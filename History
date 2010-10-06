@@ -24,3 +24,6 @@
     st_atime and st_ctime are equal to st_mtime.
     It works with 'mod_index_json 0.0.3' for Apache.
       http://github.com/ToshiyukiTerashita/mod_index_json
+
+0.0.4:
+  - Implemented filesystem control.
