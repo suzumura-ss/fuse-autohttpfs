@@ -89,7 +89,6 @@ int AutoHttpFsProc::open(Log& logger, const char* path, struct fuse_file_info& f
     AutoHttpFsContext* ctx = AUTOHTTPFSCONTEXTS.alloc_context();
     ctx->proc = proc;
     ffi.fh = ctx->seq();
-    ffi.nonseekable = 1;
     logger(Log::DEBUG, "   => fh=%"FINT64"d, ctx=%p, proc=%p\n", ffi.fh, ctx, proc);
   }
   return r;
