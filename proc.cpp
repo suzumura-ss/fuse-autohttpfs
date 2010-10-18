@@ -72,7 +72,7 @@ int Proc_StringStream::getattr(Log& logger, struct stat& stbuf)
 int Proc_StringStream::read(Log& logger, char* buf, size_t size, off_t offset)
 {
   if(m_string.size()<size+offset) {
-    size = (m_string.size()>offset)? m_string.size()-offset: 0;
+    size = ((off_t)m_string.size()>offset)? m_string.size()-offset: 0;
   }
   if(size>0) memcpy(buf, m_string.c_str()+offset, size);
   return size;
@@ -93,14 +93,13 @@ int Proc_StringStreamIO::write(Log& logger, const char* buf, size_t size, off_t 
 {
   // Can append or replace only.
   if(offset==0) m_string.resize(0);
-  if(m_string.size()==offset) {
+  if((off_t)m_string.size()==offset) {
     m_string.append(buf, size);
     m_wrote += size;
     return size;
   }
   return -EINVAL;
 }
-
 
 
 
@@ -201,5 +200,44 @@ int Proc_LogLevel::release(Log& logger)
   Proc_StringStream::release(logger);
   return 0;
 }
+
+
+
+// Proc_Benchmark class implements.
+int Proc_BenchmarkNull::getattr(Log& logger, struct stat& stbuf)
+{
+  stbuf.st_mode = S_IFREG|S_IRUSR|S_IRGRP|S_IROTH;
+  stbuf.st_atime = stbuf.st_ctime = stbuf.st_mtime = time(NULL);
+  stbuf.st_size = m_size;
+  return 0;
+}
+
+
+int Proc_BenchmarkNull::open(Log& logger, ProcAbstract*& self)
+{
+  self = this;
+  return 0;
+}
+
+
+int Proc_BenchmarkNull::read(Log& logger, char* buf, size_t size, off_t offset)
+{
+  return size;
+}
+
+
+int Proc_Benchmark::open(Log& logger, ProcAbstract*& self)
+{
+  self = this;
+  return 0;
+}
+
+
+int Proc_Benchmark::read(Log& logger, char* buf, size_t size, off_t offset)
+{
+  memset(buf, offset & 0xff, size);
+  return size;
+}
+
 
 // vim: sw=2 sts=2 ts=4 expandtab :

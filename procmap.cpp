@@ -98,8 +98,11 @@ int AutoHttpFsProc::open(Log& logger, const char* path, struct fuse_file_info& f
 // initialize proc/ entries.
 void AutoHttpFsProc::init()
 {
-  Proc_Dir *root, *cache;
+  Proc_Dir *root, *cache, *bench;
   mount(".proc", root = new Proc_Dir("/.proc"));
+  mount("benchmark", bench = new Proc_Dir(*root, "/benchmark"), root);
+  mount("4GB.null", new Proc_BenchmarkNull(4ULL*1024*1024*1024), bench);
+  mount("4GB", new Proc_Benchmark(4ULL*1024*1024*1024), bench);
   mount("cache", cache = new Proc_Dir(*root, "/cache"), root);
   mount("enable", new Proc_CacheEnable(), cache);
   mount("entries", new Proc_CacheEntries(), cache);

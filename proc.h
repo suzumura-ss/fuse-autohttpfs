@@ -162,5 +162,32 @@ public:
 };
 
 
+
+class Proc_BenchmarkNull: public ProcAbstract
+{
+public:
+  inline Proc_BenchmarkNull() { };
+  inline Proc_BenchmarkNull(uint64_t size) { m_size = size; };
+  virtual int getattr(Log& logger, struct stat& stbuf);
+  virtual int open(Log& logger, ProcAbstract*& self);
+  virtual int read(Log& logger, char* buf, size_t size, off_t offset);
+  inline virtual int release(Log& logger) { return 0; };
+  inline virtual const char* name() { return "Proc_Benchmark"; };
+
+protected:
+  uint64_t m_size;
+};
+
+
+
+class Proc_Benchmark: public Proc_BenchmarkNull
+{
+public:
+  inline Proc_Benchmark(uint64_t size) { m_size = size; };
+  virtual int open(Log& logger, ProcAbstract*& self);
+  virtual int read(Log& logger, char* buf, size_t size, off_t offset);
+};
+
+
 #endif // __INCLUDE_AUTOHTTPFSPROC_H__
 // vim: sw=2 sts=2 ts=4 expandtab :
