@@ -33,18 +33,23 @@ static Log glog("autohttpfs", LOG_LOCAL7, Log::NOTE);
 void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
 {
   m_root = "/";
+  m_max_readahead = 0x20000;
   int ll = Log::NOTE;
+  int mr = 0x20000;
 
   for(int it=1; it<argc; it++) {
     parsearg_helper(m_root, "--root=", argc, argv+it, it);
     parsearg_helper(ll, "--loglevel=", argc, argv+it, it);
+    parsearg_helper(mr, "--max_readahead=", argc, argv+it, it);
     if(strcmp("--help", argv[it])==0) {
       help = "autohttpfs options:\n" \
              "    --root=DIR      (default: / (root))\n" \
-             "    --loglevel=N    syslog level (default: 5 (NOTE))\n";
+             "    --loglevel=N    syslog level (default: 5 (NOTE))\n" \
+             "    --max_readahead fuse_conn.info.max_readahead (default: 131072)\n";
     }
   }
   glog.loglevel((Log::LOGLEVEL)ll);
+  m_max_readahead = mr;
 }
 
 
@@ -288,7 +293,6 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
   r = ca.get(glog, buf, offset, size);
   if((r==200)||(r==206)) return size;
 
-  ctx->attr().remove_attr(glog, path);
   return -ENOENT;
 }
 
@@ -347,7 +351,7 @@ void* AutoHttpFs::init(struct fuse_conn_info* fci)
 
   fci->async_read   = 1;
   fci->max_write    = 16;
-  fci->max_readahead = 0x20000;
+  fci->max_readahead = self->m_max_readahead;
 
   AutoHttpFsContexts* ctxs = new AutoHttpFsContexts(self);
   glog(Log::NOTE, "Starting autohttpfs.\n");
