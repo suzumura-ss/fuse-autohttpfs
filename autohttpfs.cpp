@@ -36,19 +36,23 @@ void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
   m_max_readahead = 0x20000;
   int ll = Log::NOTE;
   int mr = 0x20000;
+  bool ro = true;
 
   for(int it=1; it<argc; it++) {
-    parsearg_helper(m_root, "--root=", argc, argv+it, it);
+    parsearg_helper(ro, "--readonly=", argc, argv+it, it);
     parsearg_helper(ll, "--loglevel=", argc, argv+it, it);
+    parsearg_helper(m_root, "--root=", argc, argv+it, it);
     parsearg_helper(mr, "--max_readahead=", argc, argv+it, it);
     if(strcmp("--help", argv[it])==0) {
       help = "autohttpfs options:\n" \
-             "    --root=DIR      (default: / (root))\n" \
-             "    --loglevel=N    syslog level (default: 5 (NOTE))\n" \
-             "    --max_readahead fuse_conn.info.max_readahead (default: 131072)\n";
+             "    --readonly=SW       file permission. 'yes':444, 'no':644 (default:yes)\n" \
+             "    --root=DIR          (default: / (root))\n" \
+             "    --loglevel=N        syslog level (default: 5 (NOTE))\n" \
+             "    --max_readahead     fuse_conn.info.max_readahead (default: 131072)\n";
     }
   }
   glog.loglevel((Log::LOGLEVEL)ll);
+  m_file_readonly = ro;
   m_max_readahead = mr;
 }
 
@@ -69,6 +73,24 @@ void AutoHttpFs::parsearg_helper(int& opt, const char* key, int& argc, char** ar
   size_t kl = strlen(key);
   if(strncmp(*argv, key, kl)==0) {
     opt = atoi(argv[0] + kl);
+    parsearg_shift(argc, argv, it);
+    glog(Log::DEBUG, "parse_args: '%s' => %d\n", key, opt);
+  }
+}
+
+
+void AutoHttpFs::parsearg_helper(bool& opt, const char* key, int& argc, char** argv, int& it)
+{
+  size_t kl = strlen(key);
+  if(strncmp(*argv, key, kl)==0) {
+    char* v = argv[0] + kl;
+    if(strcasecmp(v, "YES")==0) {
+      opt = true;
+    } else if(strcasecmp(v, "NO")==0) {
+      opt = false;
+    } else {
+      glog(Log::ERR, "Invalid options: '%s' for '%s'.\n", key, v);
+    }
     parsearg_shift(argc, argv, it);
     glog(Log::DEBUG, "parse_args: '%s' => %d\n", key, opt);
   }
@@ -99,6 +121,7 @@ void AutoHttpFs::setup()
   m_root_stat.st_mode |= S_IFDIR|S_IXUSR;
   m_reguler_stat.st_mode &= (~(S_IXUSR|S_IXGRP|S_IXOTH));
   m_reguler_stat.st_mode |= S_IFREG;
+  if(!m_file_readonly) m_reguler_stat.st_mode |= S_IWUSR;
 }
 
 

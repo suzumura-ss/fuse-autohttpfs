@@ -27,3 +27,8 @@
 
 0.0.4:
   - Implemented filesystem control.
+
+0.0.5:
+  - Implemented --readonly option for regular files. default is 'yes'.
+    - yes: regular file's mode is 0444(-r--r--r--)
+    - no : regular file's mode is 0644(-rw-r--r--), but this is 'ReadOnly filesystem'.

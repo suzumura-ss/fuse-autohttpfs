@@ -23,7 +23,7 @@
 
 
 // RemoteAttr class implements.
-void RemoteAttr::store(UrlStat& stat, const char* path, mode_t mode, std::string x_filestat)
+void RemoteAttr::store(UrlStat& stat, const char* path, mode_t mode, std::string x_filestat, uint64_t content_length)
 {
   if(!x_filestat.empty()) {
     try {
@@ -36,6 +36,7 @@ void RemoteAttr::store(UrlStat& stat, const char* path, mode_t mode, std::string
       throw e;
     }
   } else {
+    stat = UrlStat(mode, content_length, time(NULL));
     m_cache.add(path, stat);
   }
 }
@@ -68,7 +69,7 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
     int res = ca.head(logger);
     if((res==200) || (res==403)) {
       // path should be directory.
-      try{ store(stat, path, S_IFDIR, ca.x_filestat()); }
+      try{ store(stat, path, S_IFDIR, ca.x_filestat(), ca.content_length()); }
       catch(std::string e) {
         logger(Log::WARN, "   RemoteAttr::get_attr(%s:DIR): %s\n", path, e.c_str());
       }
@@ -83,7 +84,7 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
     int res = ca.head(logger);
     if(res==200) {
       // path is regular file.
-      try{ store(stat, path, S_IFREG, ca.x_filestat()); }
+      try{ store(stat, path, S_IFREG, ca.x_filestat(), ca.content_length()); }
       catch(std::string e) {
         logger(Log::WARN, "   RemoteAttr::get_attr(%s:REG): %s\n", path, e.c_str());
       }

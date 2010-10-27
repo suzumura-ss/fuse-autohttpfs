@@ -42,7 +42,7 @@ public:
   void setup();
   void parse_args(const char*& help, int& argc, char* argv[]);
   inline const struct stat* stat_d() { return &m_root_stat; };
-  inline const struct stat* stat_r() { return &m_reguler_stat; }
+  inline const struct stat* stat_r() { return &m_reguler_stat; };
   inline int errcode() { return m_errno; };
 
   static void init_fuse_operations(fuse_operations& oper); 
@@ -51,9 +51,11 @@ private:
   int m_errno;
   struct stat m_root_stat, m_reguler_stat;
   std::string m_root;
-  uint64_t m_max_readahead;
+  bool      m_file_readonly;
+  uint64_t  m_max_readahead;
   static void parsearg_helper(std::string& opt, const char* key, int& argc, char** argv, int& it);
   static void parsearg_helper(int& opt, const char* key, int& argc, char** argv, int& it);
+  static void parsearg_helper(bool& opt, const char* key, int& argc, char** argv, int& it);
   static void parsearg_shift(int& argc, char** argv, int& it);
 
 private:

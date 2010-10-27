@@ -40,7 +40,7 @@ public:
 
 private:
   UrlStatCache  m_cache;
-  void store(UrlStat& stat, const char*path, mode_t mode, std::string x_filestat);
+  void store(UrlStat& stat, const char*path, mode_t mode, std::string x_filestat, uint64_t content_length);
 };
 
 

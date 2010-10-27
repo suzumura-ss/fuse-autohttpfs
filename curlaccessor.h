@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <pthread.h>
 #include <string>
 #include <curl/curl.h>
