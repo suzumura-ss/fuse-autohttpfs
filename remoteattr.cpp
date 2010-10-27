@@ -64,7 +64,7 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
 
   // challenge "path/" to directory.
   {
-    CurlAccessor ca(path);
+    CurlAccessor ca(path, true);
     ca.add_header("Accept", "text/json");
     int res = ca.head(logger);
     if((res==200) || (res==403)) {
@@ -79,7 +79,7 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
 
   // challenge "path" to regular file.
   {
-    CurlAccessor ca(path, false);
+    CurlAccessor ca(path);
     ca.add_header("Accept", "text/json");
     int res = ca.head(logger);
     if(res==200) {
@@ -87,6 +87,27 @@ int RemoteAttr::get_attr(Log& logger, const char* path, UrlStat& stat)
       try{ store(stat, path, S_IFREG, ca.x_filestat(), ca.content_length()); }
       catch(std::string e) {
         logger(Log::WARN, "   RemoteAttr::get_attr(%s:REG): %s\n", path, e.c_str());
+      }
+      return 0;
+    }
+  }
+
+  // challenge "path" without follow location to use without mod_index_json.
+  {
+    CurlAccessor ca(path, false, false);
+    int res = ca.head(logger);
+    if(res==200) {
+      // path is regular file.
+      try{ store(stat, path, S_IFREG, ca.x_filestat(), ca.content_length()); }
+      catch(std::string e) {
+        logger(Log::WARN, "   RemoteAttr::get_attr(%s:REG): %s\n", path, e.c_str());
+      }
+      return 0;
+    } else if(res==301) {
+      // path should be directory.
+      try{ store(stat, path, S_IFDIR, ca.x_filestat(), ca.content_length()); }
+      catch(std::string e) {
+        logger(Log::WARN, "   RemoteAttr::get_attr(%s:DIR): %s\n", path, e.c_str());
       }
       return 0;
     }

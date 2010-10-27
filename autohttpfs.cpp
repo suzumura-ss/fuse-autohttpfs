@@ -313,7 +313,7 @@ int AutoHttpFs::read(const char* path, char* buf, size_t size, off_t offset, str
   }
   if(size<0) return 0;
 
-  CurlAccessor ca(path, false);
+  CurlAccessor ca(path);
   r = ca.get(glog, buf, offset, size);
   if((r==200)||(r==206)) return size;
 

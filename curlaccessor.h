@@ -45,7 +45,7 @@ private:
 class CurlAccessor
 {
 public:
-  CurlAccessor(const char* url, bool dir_access = true);
+  CurlAccessor(const char* url, bool dir_access = false, bool follow_location = true);
   virtual ~CurlAccessor();
   void add_header(const char* key, const char* value);
   int head(Log& logger);

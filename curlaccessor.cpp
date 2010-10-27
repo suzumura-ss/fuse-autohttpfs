@@ -45,7 +45,7 @@ void CurlSlist::add(const char* string)
 
 
 // CurlAccessor class implements.
-CurlAccessor::CurlAccessor(const char* path, bool dir_access)
+CurlAccessor::CurlAccessor(const char* path, bool dir_access, bool follow_location)
 {
   m_url = (path[0]!='/')? path: path+1;
   if(dir_access) m_url.append("/");  
@@ -61,7 +61,7 @@ CurlAccessor::CurlAccessor(const char* path, bool dir_access)
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
   curl_easy_setopt(curl, CURLOPT_URL, url());
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+  if(follow_location) curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
   curl_easy_setopt(curl, CURLOPT_WRITEHEADER, this);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, m_user_agent.c_str());
