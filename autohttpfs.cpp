@@ -150,6 +150,7 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
   }
   if(us.mode & (~S_IFMT)) {
     stbuf->st_mode = us.mode & (~(S_IWUSR|S_IWGRP|S_IWOTH));
+    if(!self->m_file_readonly) stbuf->st_mode |= S_IWUSR;
   }
   if(us.length!=0) {
     stbuf->st_size = us.length;
