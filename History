@@ -30,5 +30,10 @@
 
 0.0.5:
   - Implemented --readonly option for regular files. default is 'yes'.
-    - yes: regular file's mode is 0444(-r--r--r--)
+    - yes: regular file's mode is 0444(-r--r--r--).
     - no : regular file's mode is 0644(-rw-r--r--), but this is 'ReadOnly filesystem'.
+
+0.0.6:
+  - Implemented --noexec option for regular files. default is 'yes'.
+    - yes: regular file's mode is marked to noexec.
+    - no : regular file's mode is path thru from mod_index_json.

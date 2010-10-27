@@ -36,16 +36,20 @@ void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
   m_max_readahead = 0x20000;
   int ll = Log::NOTE;
   int mr = 0x20000;
-  bool ro = true;
+  bool ro = true, ne = true;
 
   for(int it=1; it<argc; it++) {
     parsearg_helper(ro, "--readonly=", argc, argv+it, it);
+    parsearg_helper(ne, "--noexec=", argc, argv+it, it);
     parsearg_helper(ll, "--loglevel=", argc, argv+it, it);
     parsearg_helper(m_root, "--root=", argc, argv+it, it);
     parsearg_helper(mr, "--max_readahead=", argc, argv+it, it);
     if(strcmp("--help", argv[it])==0) {
       help = "autohttpfs options:\n" \
-             "    --readonly=SW       file permission. 'yes':444, 'no':644 (default:yes)\n" \
+             "    --readonly=SW       modify file permission.\n" \
+             "                          'yes':readonly,       'no':writable   (default:yes)\n" \
+             "    --noexec=SW         modify file permission.\n" \
+             "                          'yes':non executable, 'no':executable (default:yes)\n" \
              "    --root=DIR          (default: / (root))\n" \
              "    --loglevel=N        syslog level (default: 5 (NOTE))\n" \
              "    --max_readahead     fuse_conn.info.max_readahead (default: 131072)\n";
@@ -53,6 +57,7 @@ void AutoHttpFs::parse_args(const char*& help, int& argc, char* argv[])
   }
   glog.loglevel((Log::LOGLEVEL)ll);
   m_file_readonly = ro;
+  m_file_noexec = ne;
   m_max_readahead = mr;
 }
 
@@ -151,6 +156,7 @@ int AutoHttpFs::getattr(const char* path, struct stat *stbuf)
   if(us.mode & (~S_IFMT)) {
     stbuf->st_mode = us.mode & (~(S_IWUSR|S_IWGRP|S_IWOTH));
     if(!self->m_file_readonly) stbuf->st_mode |= S_IWUSR;
+    if(self->m_file_noexec && us.is_reg()) stbuf->st_mode &= ~(S_IXUSR|S_IXGRP|S_IXOTH);
   }
   if(us.length!=0) {
     stbuf->st_size = us.length;

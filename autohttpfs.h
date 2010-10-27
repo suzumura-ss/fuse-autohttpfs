@@ -52,6 +52,7 @@ private:
   struct stat m_root_stat, m_reguler_stat;
   std::string m_root;
   bool      m_file_readonly;
+  bool      m_file_noexec;
   uint64_t  m_max_readahead;
   static void parsearg_helper(std::string& opt, const char* key, int& argc, char** argv, int& it);
   static void parsearg_helper(int& opt, const char* key, int& argc, char** argv, int& it);

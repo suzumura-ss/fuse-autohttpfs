@@ -20,7 +20,7 @@
 
 
 #define PROGRAM_NAME  "autohttpfs"
-#define VERSION       "0.0.5"
+#define VERSION       "0.0.6"
 
 
 #endif // __INCLUDE_VERSION_H__
